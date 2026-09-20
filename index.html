@@ -1,0 +1,3533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>保護者面談自動日程調整システム - EduSchedule Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    button, [role="button"], input[type="button"], input[type="submit"] {
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.12s ease, filter 0.12s ease, background-color 0.15s ease !important;
+    }
+
+    button:hover, [role="button"]:hover {
+      filter: brightness(1.04);
+    }
+
+    button:active, [role="button"]:active {
+      transform: scale(0.96) translateY(1px) !important;
+      filter: brightness(0.93) !important;
+    }
+
+    .btn-ripple-wave {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: btn-ripple-anim 0.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.45);
+      z-index: 10;
+    }
+
+    @keyframes btn-ripple-anim {
+      0% {
+        transform: scale(0);
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(2.8);
+        opacity: 0;
+      }
+    }
+
+    @keyframes toast-slide-bounce {
+      0% {
+        transform: translateY(16px) scale(0.92);
+        opacity: 0;
+      }
+      70% {
+        transform: translateY(-2px) scale(1.02);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .toast-anim-in {
+      animation: toast-slide-bounce 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @media print {
+      header, 
+      #teacher-nav-group, 
+      #toast-container, 
+      #app-modal, 
+      #auth-modal, 
+      #print-assistant-modal,
+      .no-print,
+      #view-teacher-print > div:first-child,
+      #view-teacher-print > div.flex.border-b,
+      #view-teacher-letter > div:first-child,
+      #view-teacher-letter > div.grid.grid-cols-1.lg\\:grid-cols-3,
+      section:not(#view-teacher-print):not(#view-teacher-letter) {
+        display: none !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      #view-teacher-print, #view-teacher-letter {
+        display: block !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      #print-area, #letter-print-preview-container {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+        width: 100% !important;
+      }
+
+      .print-card-item {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+
+      .page-break {
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- トップナビゲーションバー -->
+  <header class="bg-indigo-950 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="handleLogoClick()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-inner font-bold text-lg">
+          🏫
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold leading-tight flex items-center gap-2">
+            <span id="header-event-title">令和8年度 個別面談日程調整システム</span>
+            <span id="header-mode-badge" class="text-[11px] bg-slate-700 text-white font-semibold px-2 py-0.5 rounded-full hidden sm:inline-block">保護者ポータル</span>
+          </h1>
+          <p class="text-xs text-indigo-300" id="header-school-meta">緑ヶ丘中学校 個別面談調整システム</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- 教員用メニューバー（教員画面表示時のみ出現） -->
+        <nav id="teacher-nav-group" class="hidden flex items-center bg-indigo-900/80 p-1 rounded-xl border border-indigo-700/50 text-xs sm:text-sm font-medium">
+          <button id="nav-btn-dashboard" onclick="switchView('teacher-dashboard')" class="px-3 py-1.5 rounded-lg transition text-white bg-indigo-600 shadow-sm flex items-center gap-1 font-semibold">
+            <span>📊 ダッシュボード</span>
+          </button>
+          <button id="nav-btn-confirmed" onclick="switchView('teacher-confirmed')" class="px-3 py-1.5 rounded-lg transition text-indigo-200 hover:text-white flex items-center gap-1">
+            <span>📋 決定日程一覧</span>
+          </button>
+          <button id="nav-btn-roster" onclick="switchView('teacher-roster')" class="px-3 py-1.5 rounded-lg transition text-indigo-200 hover:text-white flex items-center gap-1">
+            <span>👥 名簿・PIN管理</span>
+          </button>
+          <button id="nav-btn-slots" onclick="switchView('teacher-slots')" class="px-3 py-1.5 rounded-lg transition text-indigo-200 hover:text-white flex items-center gap-1">
+            <span>⚙️ 枠・教員・学級設定</span>
+          </button>
+          <button id="nav-btn-letter" onclick="switchView('teacher-letter')" class="px-3 py-1.5 rounded-lg transition text-indigo-200 hover:text-white flex items-center gap-1">
+            <span>✉️ 案内文作成</span>
+          </button>
+          <button id="nav-btn-print" onclick="switchView('teacher-print')" class="px-3 py-1.5 rounded-lg transition text-indigo-200 hover:text-white flex items-center gap-1">
+            <span>🖨️ 印刷・配布</span>
+          </button>
+          <button id="nav-btn-system" onclick="switchView('teacher-system')" class="px-3 py-1.5 rounded-lg transition text-indigo-200 hover:text-white flex items-center gap-1">
+            <span>💾 保管・管理</span>
+          </button>
+        </nav>
+
+        <!-- 教員画面表示時に保護者画面を確認するためのプレビューボタン（保護者画面では非表示） -->
+        <button id="btn-parent-switch" onclick="switchView('parent-portal')" class="hidden px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-indigo-100 border border-indigo-600/50 rounded-xl text-xs font-semibold items-center gap-1.5 transition">
+          <span>📱 保護者画面をプレビュー</span>
+        </button>
+
+        <!-- 認証切替ボタン（保護者画面では控えめに、教員画面ではログアウトボタンとして機能） -->
+        <button id="btn-auth-toggle" onclick="handleAuthButtonClick()" class="px-2.5 py-1.5 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-300 hover:text-white border border-indigo-800/80 rounded-xl text-xs font-medium flex items-center gap-1.5 transition">
+          <span id="auth-btn-icon">🔒</span>
+          <span id="auth-btn-label">教職員はこちら</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- トースト通知コンテナ -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none max-w-sm w-full px-3"></div>
+
+  <!-- 汎用モーダル -->
+  <div id="app-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transform transition-all">
+      <div id="modal-header" class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+        <h3 id="modal-title" class="font-bold text-slate-800 text-sm sm:text-base">確認</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">✕</button>
+      </div>
+      <div id="modal-body" class="p-6 text-xs sm:text-sm text-slate-600 space-y-3"></div>
+      <div id="modal-footer" class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closeModal()" class="px-4 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-xs font-semibold">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 教員用認証モーダル -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200">
+      <div class="px-6 py-4 bg-indigo-950 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span>🔐</span>
+          <h3 class="font-bold text-sm">教員・管理者認証</h3>
+        </div>
+        <button onclick="closeAuthModal()" class="text-indigo-300 hover:text-white">✕</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          日程調整の実行、生徒名簿、時間割管理の操作には教員パスコードが必要です。
+        </p>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">教員用パスコード</label>
+          <input type="password" id="teacher-passcode-input" placeholder="パスコードを入力" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-mono tracking-widest focus:ring-2 focus:ring-indigo-500 text-center" onkeydown="if(event.key==='Enter') verifyTeacherPasscode()">
+          <div class="flex items-center justify-between mt-2 text-[11px]">
+            <span class="text-slate-400">初期値: <strong class="font-mono text-indigo-600">1234</strong></span>
+            <button type="button" onclick="openDirectPasscodeResetModal()" class="text-indigo-600 hover:text-indigo-800 font-semibold underline">
+              再設定
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="closeAuthModal()" class="px-4 py-2 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-xs font-semibold">キャンセル</button>
+        <button onclick="verifyTeacherPasscode()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs">認証してログイン</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 印刷アシスタント専用モーダル -->
+  <div id="print-assistant-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-300 flex flex-col max-h-[92vh]">
+      <div class="px-6 py-4 bg-indigo-950 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">🖨️</span>
+          <div>
+            <h3 class="font-bold text-sm sm:text-base">印刷アシスタント & A4出力</h3>
+            <p class="text-[11px] text-indigo-200">お使いのブラウザ環境に合わせて最適な方法で印刷または保存できます</p>
+          </div>
+        </div>
+        <button onclick="closePrintAssistantModal()" class="text-indigo-300 hover:text-white text-lg p-1 rounded-lg">✕</button>
+      </div>
+
+      <div class="p-5 bg-slate-50 border-b border-slate-200">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button onclick="executeBrowserPrintDirectly()" class="p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center text-center gap-1 shadow-sm transition">
+            <span class="text-lg">🖨️</span>
+            <span>ブラウザ印刷を起動</span>
+            <span class="text-[10px] text-indigo-200 font-normal">プリンターまたはPDF保存</span>
+          </button>
+
+          <button onclick="downloadActivePrintHTML()" class="p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center text-center gap-1 shadow-sm transition">
+            <span class="text-lg">📥</span>
+            <span>印刷用HTMLを保存 (推奨)</span>
+            <span class="text-[10px] text-emerald-100 font-normal">どのPCでもワンクリック印刷</span>
+          </button>
+
+          <button onclick="copyActivePrintTableToClipboard()" class="p-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 rounded-xl font-bold text-xs flex flex-col items-center justify-center text-center gap-1 shadow-2xs transition">
+            <span class="text-lg">📋</span>
+            <span>表・文書をコピー</span>
+            <span class="text-[10px] text-slate-500 font-normal">Word / Excelにそのまま貼付</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1 bg-white space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+          <span class="text-xs font-bold text-slate-700">📄 A4印刷プレビュー (印刷対象のレイアウト)</span>
+          <span class="text-[11px] text-slate-400">※プレビュー内の改ページに合わせてA4用紙に印刷されます</span>
+        </div>
+        <div id="print-assistant-preview-content" class="bg-white p-4 rounded-xl border border-slate-200 shadow-inner text-xs"></div>
+      </div>
+
+      <div class="px-6 py-3 bg-slate-100 border-t border-slate-200 flex justify-end">
+        <button onclick="closePrintAssistantModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       VIEW 0: 保護者専用ポータル
+       ========================================================================= -->
+  <section id="view-parent-portal" class="flex-1 max-w-xl w-full mx-auto p-4 sm:p-6 space-y-4">
+    <!-- 教員がプレビュー中の時のみ表示される補助バー -->
+    <div id="parent-preview-notice" class="hidden bg-indigo-50 border border-indigo-200 p-3 rounded-xl flex items-center justify-between text-xs text-indigo-900 shadow-xs">
+      <span class="font-medium flex items-center gap-1.5"><span>👁️</span> 教員アカウントで保護者画面を確認中</span>
+      <button onclick="switchView('teacher-dashboard')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition">
+        教員管理画面へ戻る
+      </button>
+    </div>
+
+    <!-- 保護者ログインカード -->
+    <div id="parent-auth-container" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="bg-gradient-to-r from-indigo-900 to-indigo-800 p-6 text-white text-center">
+        <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-2 text-2xl">
+          📱
+        </div>
+        <h2 class="text-lg font-bold">保護者様 個別面談ログイン</h2>
+        <p class="text-xs text-indigo-200 mt-1" id="parent-portal-event-label">学校から配布されたお手紙の「暗証番号 (PIN)」をご入力ください</p>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">学年・クラス</label>
+          <select id="parent-login-class" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 bg-white">
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">個別認証PIN (暗証番号)</label>
+          <input type="password" id="parent-login-pin" placeholder="お手紙に記載の暗証番号" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-mono tracking-widest text-center focus:ring-2 focus:ring-indigo-500" onkeydown="if(event.key==='Enter') verifyParentLogin()">
+        </div>
+
+        <button onclick="verifyParentLogin()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-xs transition">
+          面談希望入力画面へ進む
+        </button>
+
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500 leading-relaxed">
+          🔒 <strong>プライバシー保護:</strong> 他の生徒・保護者様の氏名や全体の希望状況は保護者様画面には一切表示されません。
+        </div>
+      </div>
+    </div>
+
+    <!-- 保護者用希望選択メインカード -->
+    <div id="parent-form-container" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-800 to-indigo-900 p-5 text-white">
+          <div class="flex items-center justify-between">
+            <span id="parent-badge-class" class="px-2.5 py-0.5 bg-indigo-950/70 border border-indigo-400/40 rounded-full text-xs font-medium">1年1組</span>
+            <button onclick="logoutParent()" class="text-xs text-indigo-200 hover:text-white underline">ログアウト</button>
+          </div>
+          <h2 id="parent-label-student" class="text-lg font-bold mt-2">生徒氏名 さん 保護者 様</h2>
+          <p id="parent-label-teacher" class="text-xs text-indigo-200 mt-0.5">担任: 山田 健一 先生 | 1年1組 教室</p>
+        </div>
+
+        <div id="parent-sibling-banner" class="p-4 bg-amber-50 border-b border-amber-200 flex items-start gap-3">
+          <input type="checkbox" id="pref-sibling-consecutive" checked class="mt-0.5 w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+          <label for="pref-sibling-consecutive" class="text-xs text-amber-950 cursor-pointer leading-relaxed">
+            <span class="font-bold text-amber-900 block">兄弟姉妹の同日・連続枠を優先する (推奨)</span>
+            同じ世帯の <strong id="sibling-names-hint">兄弟姉妹</strong> さんの面談枠と同日かつ近接した時間帯への優先配置を試みます。
+          </label>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-b border-slate-200 text-xs text-slate-600 space-y-1">
+          <p class="font-bold text-slate-700">【希望選択のしかた】</p>
+          <p>• 都合の良い時間帯に「第1〜第3希望」を選択してください。</p>
+          <p>• ご都合がつかない時間帯は「NG」を押してください。</p>
+          <p class="text-indigo-600">※提出締切: <span id="parent-deadline-label">2026年10月10日(土) 23:59</span></p>
+        </div>
+
+        <div id="parent-selected-summary" class="p-4 bg-indigo-50/70 border-b border-indigo-100 text-xs space-y-1.5">
+          <div class="font-bold text-indigo-900 flex items-center justify-between">
+            <span>📋 現在選択中の希望内容</span>
+            <span class="text-[11px] text-indigo-600 font-normal">※選択後、下部のボタンで送信してください</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
+            <div class="bg-white p-2 rounded-lg border border-indigo-200">
+              <span class="font-bold text-emerald-700 block">【第1希望】</span>
+              <span id="summary-rank-1" class="text-slate-700">未選択</span>
+            </div>
+            <div class="bg-white p-2 rounded-lg border border-indigo-200">
+              <span class="font-bold text-blue-700 block">【第2希望】</span>
+              <span id="summary-rank-2" class="text-slate-700">未選択</span>
+            </div>
+            <div class="bg-white p-2 rounded-lg border border-indigo-200">
+              <span class="font-bold text-sky-700 block">【第3希望】</span>
+              <span id="summary-rank-3" class="text-slate-700">未選択</span>
+            </div>
+          </div>
+          <div id="summary-ng-container" class="text-[11px] text-rose-700 pt-0.5 hidden">
+            <span>🚫 NG指定枠: </span><span id="summary-ng-list" class="font-medium">-</span>
+          </div>
+        </div>
+
+        <div id="parent-slot-options" class="p-4 space-y-2.5 max-h-[460px] overflow-y-auto"></div>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col gap-2">
+          <button id="btn-parent-submit-pref" onclick="saveParentPreferences()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
+            <span id="parent-submit-icon">📨</span>
+            <span id="parent-submit-text">この内容で希望を提出・更新する</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="parent-confirmed-card" class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-5 hidden space-y-3">
+        <div class="flex items-center gap-2 text-emerald-700 font-bold text-sm">
+          <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          面談日時が確定しています
+        </div>
+        <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-100 text-emerald-950">
+          <div class="text-xs text-emerald-700 font-medium">決定日時:</div>
+          <div id="confirmed-time-str" class="text-lg font-bold text-emerald-900 mt-0.5">10月15日(木) 13:50 〜 14:05</div>
+          <div id="confirmed-place-str" class="text-xs text-emerald-800 mt-1">場所: 1年1組 教室</div>
+        </div>
+        <p class="text-xs text-slate-500 leading-relaxed" id="confirmed-notice-text">
+          開始5分前までに各学年控室へお越しください。上履きをご持参ください。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       VIEW 1: 教員管理ダッシュボード
+       ========================================================================= -->
+  <section id="view-teacher-dashboard" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800" id="badge-event-status">日程調整・稼働中</span>
+          <span class="text-xs text-slate-500" id="label-slot-time-info">1枠: 15分 (換気・移動 5分)</span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 mt-1" id="dash-event-heading">個別懇談会 全体スケジュール進捗</h2>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-run-automatch" onclick="runAutoMatching()" class="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md transition">
+          <svg id="icon-automatch" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span id="label-automatch">最適自動割り当てを実行 (兄弟優先)</span>
+        </button>
+        <button onclick="switchView('teacher-confirmed')" class="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl transition">
+          <span>📋</span> 決定一覧表を表示
+        </button>
+        <button onclick="confirmResetAssignments()" class="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition">
+          割当リセット
+        </button>
+        <button onclick="exportCSV()" class="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-xl transition shadow-2xs">
+          CSV出力
+        </button>
+        <button onclick="exportICal()" class="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-xl transition shadow-2xs">
+          カレンダー同期 (iCal)
+        </button>
+      </div>
+    </div>
+
+    <!-- メトリクスカード -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <p class="text-xs text-slate-500 font-medium">希望アンケート提出率</p>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span id="metric-submission-rate" class="text-2xl font-bold text-slate-800">0 / 0</span>
+          <span id="metric-submission-pct" class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">0%</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2">
+          <div id="bar-submission-rate" class="bg-indigo-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <p class="text-xs text-slate-500 font-medium">確定済み面談枠</p>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span id="metric-assigned-count" class="text-2xl font-bold text-emerald-600">0</span>
+          <span class="text-xs text-slate-400" id="metric-assigned-total">/ 0 名</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">自動マッチングまたは個別手動調整</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <p class="text-xs text-slate-500 font-medium">兄弟姉妹の同日・近接達成率</p>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span id="metric-sibling-success" class="text-2xl font-bold text-indigo-600">-</span>
+          <span class="text-xs text-indigo-500" id="metric-sibling-pairs">0世帯対象</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">保護者の来校回数・待機負担を軽減</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <p class="text-xs text-slate-500 font-medium">未割り当て (要調整)</p>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span id="metric-unassigned-count" class="text-2xl font-bold text-slate-700">0</span>
+          <span id="badge-conflict" class="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">正常</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">希望競合・NG指定による未配置生徒</p>
+      </div>
+    </div>
+
+    <!-- 未割り当てアラートバナー -->
+    <div id="unassigned-alert-box" class="hidden bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-xs">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">⚠️</span>
+          <div>
+            <h4 class="font-bold text-amber-900 text-sm">希望枠の競合等により自動配置されなかった生徒がいます</h4>
+            <p id="unassigned-alert-text" class="text-xs text-amber-800 mt-0.5">空きスロットへ手動で割り当てるか、追加の日程ヒアリングを行ってください。</p>
+          </div>
+        </div>
+        <button onclick="openUnassignedResolverModal()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs transition">
+          未割当者を確認・調整
+        </button>
+      </div>
+    </div>
+
+    <!-- スケジュールタイムライン -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-2">
+          <label class="text-xs font-bold text-slate-600">表示日程:</label>
+          <div id="date-tabs" class="flex bg-slate-200 p-1 rounded-xl text-xs font-medium"></div>
+        </div>
+
+        <div class="flex items-center space-x-4 text-xs text-slate-500 flex-wrap">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> 確定済</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block"></span> 兄弟同日・連続</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block"></span> 空き枠</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block"></span> 会議・除外枠</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50/80 border-b border-slate-200 text-slate-600 text-xs font-semibold">
+            <tr>
+              <th class="px-5 py-3.5 w-32">時間帯</th>
+              <th class="px-5 py-3.5 w-44">担当教員 / 教室</th>
+              <th class="px-5 py-3.5">面談対象 (生徒)</th>
+              <th class="px-5 py-3.5 w-52">希望・兄弟情報</th>
+              <th class="px-5 py-3.5 w-28 text-center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="slot-table-body" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       VIEW 1.5: 決定した日程の一覧表
+       ========================================================================= -->
+  <section id="view-teacher-confirmed" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 class="text-xl font-bold text-slate-900">📋 決定日程一覧表</h2>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800" id="confirmed-badge-ratio">確定: 0 / 0 名</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">
+          確定した面談予定の一覧です。学級や日程ごとの絞り込み、CSV出力が可能です。
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="exportConfirmedListCSV()" class="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-2xs">
+          <span>📥</span> 決定一覧CSV出力
+        </button>
+        <button onclick="switchView('teacher-print')" class="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-xl transition shadow-2xs">
+          <span>🖨️</span> 印刷・配布へ
+        </button>
+        <button onclick="switchView('teacher-dashboard')" class="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition">
+          <span>📊</span> タイムラインに戻る
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div class="flex items-center gap-1.5">
+            <label class="font-bold text-slate-600 whitespace-nowrap">学級:</label>
+            <select id="confirmed-filter-class" onchange="renderConfirmedTable()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-medium focus:ring-2 focus:ring-indigo-500">
+              <option value="ALL">全学級・全クラス</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <label class="font-bold text-slate-600 whitespace-nowrap">日程:</label>
+            <select id="confirmed-filter-date" onchange="renderConfirmedTable()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-medium focus:ring-2 focus:ring-indigo-500">
+              <option value="ALL">全日程</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <label class="font-bold text-slate-600 whitespace-nowrap">並び順:</label>
+            <select id="confirmed-sort-order" onchange="renderConfirmedTable()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-medium focus:ring-2 focus:ring-indigo-500">
+              <option value="time_asc">面談日時順 (早い順)</option>
+              <option value="time_desc">面談日時順 (遅い順)</option>
+              <option value="class_num">学年クラス・出席番号順</option>
+              <option value="student_name">生徒氏名順</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <input type="text" id="confirmed-search-keyword" placeholder="生徒名で検索..." oninput="renderConfirmedTable()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs w-full sm:w-48 bg-white focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50/80 border-b border-slate-200 text-slate-600 text-xs font-semibold">
+            <tr>
+              <th class="px-4 py-3.5 w-48">決定面談日時</th>
+              <th class="px-4 py-3.5 w-36">学級・出席番号</th>
+              <th class="px-4 py-3.5 w-44">生徒氏名</th>
+              <th class="px-4 py-3.5 w-44">担当教員 / 会場</th>
+              <th class="px-4 py-3.5 w-48">希望状況・兄弟同日</th>
+              <th class="px-4 py-3.5 w-24 text-center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="confirmed-table-body" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       VIEW 2: 生徒名簿管理
+       ========================================================================= -->
+  <section id="view-teacher-roster" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">生徒名簿 ＆ 個別認証PIN管理</h2>
+        <p class="text-xs text-slate-500 mt-0.5">名簿CSVを取り込み、保護者への配布用暗証番号(PIN)や兄弟関係を一元管理できます。</p>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="downloadStudentCsvTemplate()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition flex items-center gap-1">
+          <span>📥</span> CSVテンプレート取得
+        </button>
+        <label class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer transition flex items-center gap-1 shadow-2xs">
+          <span>📤</span> CSV一括取り込み
+          <input type="file" id="csv-roster-upload" accept=".csv" class="hidden" onchange="importStudentCSV(event)">
+        </label>
+        <button onclick="exportParentPinsCSV()" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-xl transition shadow-2xs">
+          PIN一覧CSV出力
+        </button>
+        <button onclick="openAddStudentModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1 shadow-2xs">
+          <span>＋</span> 生徒を追加
+        </button>
+      </div>
+    </div>
+
+    <!-- 名簿一覧カード -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 text-xs font-medium text-slate-600">
+          <span>登録生徒数: <strong id="roster-count-total" class="text-indigo-600 font-bold text-sm">0</strong> 名</span>
+          <span class="text-slate-300">|</span>
+          <span>兄弟姉妹世帯: <strong id="roster-sibling-total" class="text-indigo-600 font-bold text-sm">0</strong> 世帯</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="text" id="roster-search-input" placeholder="氏名・クラスで検索..." oninput="filterRosterTable()" class="border border-slate-300 rounded-lg px-3 py-1 text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-slate-600 text-xs font-semibold">
+            <tr>
+              <th class="px-4 py-3 w-28">学年クラス</th>
+              <th class="px-3 py-3 w-14">番</th>
+              <th class="px-4 py-3 w-40">生徒氏名</th>
+              <th class="px-3 py-3 w-28">兄弟世帯</th>
+              <th class="px-3 py-3 w-24">PIN</th>
+              <th class="px-4 py-3">提出希望（第1〜第3希望）</th>
+              <th class="px-3 py-3 w-24 text-center">確定状態</th>
+              <th class="px-3 py-3 w-28 text-center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="roster-table-body" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       VIEW 3: 枠設定 & 教員・学級管理
+       ========================================================================= -->
+  <section id="view-teacher-slots" class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6 hidden">
+    <!-- 担当教員・学級（クラス）一覧設定カード -->
+    <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-bold text-slate-900">👨‍🏫 面談担当教員 ＆ 担当学級（クラス）設定</h3>
+            <span class="text-[11px] bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded-full border border-indigo-200">名簿および保護者画面と完全同期</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">学級名（例: 1年1組、2年A組等）、担任教員名、面談会場を設定・追加・削除できます。</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="openBatchClassSetupModal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1">
+            <span>⚡</span> 学級一括セットアップ
+          </button>
+          <button onclick="saveAllTeachersInline()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs">
+            <span>💾</span> 表の変更を一括保存
+          </button>
+          <button onclick="openAddTeacherModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs">
+            <span>＋</span> 教員・学級を追加
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto border border-slate-200 rounded-xl">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-slate-700 text-xs font-bold border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3 w-40">担当学級名 (クラス) <span class="text-rose-500">*</span></th>
+              <th class="px-4 py-3 w-52">教員氏名 (担任名) <span class="text-rose-500">*</span></th>
+              <th class="px-4 py-3 w-52">面談会場 / 教室名 <span class="text-rose-500">*</span></th>
+              <th class="px-4 py-3">オンライン面談URL (任意)</th>
+              <th class="px-4 py-3 w-24 text-center">割当枠数</th>
+              <th class="px-4 py-3 w-28 text-center">操作</th>
+            </tr>
+          </thead>
+          <tbody id="teacher-table-body" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 面談枠自動一括生成カード -->
+    <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 space-y-6">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">面談枠の一括生成</h2>
+        <p class="text-xs text-slate-500 mt-1">実施日、時間帯、面談時間と休憩時間を指定して全教員のスケジュール枠を一括生成します。</p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-slate-700">面談の実施日程</label>
+        <div class="flex flex-wrap items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+          <div id="setting-dates-list" class="flex flex-wrap gap-2 items-center"></div>
+          <div class="flex items-center gap-2 mt-1 sm:mt-0">
+            <input type="date" id="input-new-event-date" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:ring-indigo-500 bg-white">
+            <button type="button" onclick="addEventDateFromInput()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs">
+              <span>＋</span> 日付を追加
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">面談開始時刻</label>
+          <input type="time" id="setting-start-time" value="13:30" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">面談終了時刻</label>
+          <input type="time" id="setting-end-time" value="16:10" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">1枠あたりの面談時間 (分)</label>
+          <input type="number" id="setting-slot-duration" value="15" min="5" max="120" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">換気・移動休憩時間 (分)</label>
+          <input type="number" id="setting-break-duration" value="5" min="0" max="60" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+
+      <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-950 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <span class="font-bold">生成プレビュー:</span>
+          <span id="settings-preview-text" class="ml-1">設定値に基づいて枠数を算出中...</span>
+        </div>
+        <button onclick="regenerateSlots()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition">
+          面談枠を今すぐ一括生成
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       VIEW 3.5: 保護者案内文作成ジェネレーター（キリトリ提出票付き）
+       ========================================================================= -->
+  <section id="view-teacher-letter" class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 class="text-xl font-bold text-slate-900">✉️ 保護者向け案内文書・通知文ジェネレーター</h2>
+          <span class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full">紙面提出票・連絡アプリ対応</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">
+          希望調査のお便り（キリトリ回答票付き）、生徒別PIN差し込みプリント、連絡アプリ（tetoru等）向けの配信文面を作成できます。
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btn-copy-letter" onclick="copyLetterTextToClipboard()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-300 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+          <span id="copy-letter-icon">📋</span>
+          <span id="copy-letter-label">文面をクリップボードにコピー</span>
+        </button>
+        <button onclick="triggerPrint('letter')" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+          <span>🖨️</span> 案内文を印刷 / PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2 flex items-center gap-1.5">
+          <span>📑</span> 文書パターンの選択
+        </h3>
+
+        <div class="space-y-2">
+          <label class="block p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition" id="label-letter-type-survey">
+            <div class="flex items-start gap-2.5">
+              <input type="radio" name="letter_template_type" value="survey" checked onchange="handleLetterTypeChange()" class="mt-0.5 text-indigo-600">
+              <div>
+                <div class="font-bold text-xs text-slate-900">【事前】希望調査案内（紙面回答キリトリ票付き）</div>
+                <p class="text-[11px] text-slate-500 mt-0.5">学校だより・配布用（Web回答案内＋下部キリトリ提出票）</p>
+              </div>
+            </div>
+          </label>
+
+          <label class="block p-3 rounded-xl border border-slate-200 cursor-pointer transition hover:bg-slate-50" id="label-letter-type-individual-pin">
+            <div class="flex items-start gap-2.5">
+              <input type="radio" name="letter_template_type" value="individual_pin" onchange="handleLetterTypeChange()" class="mt-0.5 text-indigo-600">
+              <div>
+                <div class="font-bold text-xs text-slate-900">【個別配布】生徒別 PIN差し込みプリント</div>
+                <p class="text-[11px] text-slate-500 mt-0.5">生徒名・暗証番号(PIN)を全生徒分一括差し込み印刷</p>
+              </div>
+            </div>
+          </label>
+
+          <label class="block p-3 rounded-xl border border-slate-200 cursor-pointer transition hover:bg-slate-50" id="label-letter-type-app-mail">
+            <div class="flex items-start gap-2.5">
+              <input type="radio" name="letter_template_type" value="app_mail" onchange="handleLetterTypeChange()" class="mt-0.5 text-indigo-600">
+              <div>
+                <div class="font-bold text-xs text-slate-900">【一斉配信】連絡アプリ・メール用テキスト</div>
+                <p class="text-[11px] text-slate-500 mt-0.5">tetoru・マチコミ・安心安全メール等向け配信文</p>
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3 space-y-2.5">
+          <h4 class="text-xs font-bold text-slate-700">差し込み情報の確認・変更</h4>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">発信者（校長・担任一同など）</label>
+            <input type="text" id="letter-input-sender" value="校長 〇〇 〇〇 / 学年主任・担任一同" oninput="renderLetterPreview()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">Web回答ページURL</label>
+            <input type="text" id="letter-input-url" value="https://school.edu/interview" oninput="renderLetterPreview()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">面談期間の記載</label>
+            <input type="text" id="letter-input-period" value="令和8年10月15日(木) 〜 10月16日(金)" oninput="renderLetterPreview()" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs">
+          </div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
+        <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-800" id="letter-preview-heading">📄 プレビュー (A4用紙レイアウト)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-toggle-letter-edit" onclick="toggleLetterCustomEdit()" class="px-2.5 py-1 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg shadow-2xs">
+              ✏️ 本文を直接編集
+            </button>
+          </div>
+        </div>
+
+        <div id="letter-print-preview-container" class="p-6 overflow-y-auto max-h-[720px] bg-slate-50/50">
+          <div id="letter-display-box" class="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4 text-xs text-slate-800 leading-relaxed"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       VIEW 4: 帳票・印刷
+       ========================================================================= -->
+  <section id="view-teacher-print" class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">面談確定通知プリント ＆ 当日進行表の印刷</h2>
+        <p class="text-xs text-slate-500 mt-0.5">全体一覧表、1人ずつの個別通知状、教員用の当日タイムテーブルを綺麗に印刷・保存できます。</p>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="triggerPrint('print-area')" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          🖨️ 印刷を実行 (A4 / PDF)
+        </button>
+        <button onclick="downloadPrintHTML('print-area')" class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+          <span>📥</span> 印刷用HTMLを保存
+        </button>
+        <button onclick="openPrintAssistantDialog('print-area')" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-medium rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+          <span>🔍</span> 印刷アシスタント
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 gap-2">
+      <div class="flex text-xs font-semibold overflow-x-auto">
+        <button id="tab-print-summary" onclick="switchPrintMode('summary')" class="px-4 py-2 border-b-2 border-indigo-600 text-indigo-700 font-bold whitespace-nowrap">
+          📑 保護者配布用 学級別全体日程一覧表
+        </button>
+        <button id="tab-print-parent" onclick="switchPrintMode('parent')" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+          📄 保護者配布用 個別通知状
+        </button>
+        <button id="tab-print-teacher" onclick="switchPrintMode('teacher')" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">
+          📋 教員用 当日面談進行表
+        </button>
+      </div>
+
+      <div id="summary-print-options" class="flex items-center gap-3 py-1.5 px-3 bg-slate-50 rounded-lg text-xs">
+        <span class="text-slate-600 font-bold">表示形式:</span>
+        <label class="flex items-center gap-1 cursor-pointer text-slate-700">
+          <input type="radio" name="summary_privacy" value="full" checked onchange="toggleSummaryPrivacy(false)" class="text-indigo-600">
+          <span>出席番号 ＋ 生徒氏名</span>
+        </label>
+        <label class="flex items-center gap-1 cursor-pointer text-slate-700">
+          <input type="radio" name="summary_privacy" value="number_only" onchange="toggleSummaryPrivacy(true)" class="text-indigo-600">
+          <span>出席番号のみ (個人情報配慮)</span>
+        </label>
+      </div>
+    </div>
+
+    <div id="print-area" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-8"></div>
+  </section>
+
+  <!-- =========================================================================
+       VIEW 5: 保管・管理 & セキュリティ
+       ========================================================================= -->
+  <section id="view-teacher-system" class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 space-y-4">
+      <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+        <span>🏫</span> 面談イベントの基本情報設定
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">イベント名称</label>
+          <input type="text" id="setting-event-title" value="令和8年度 2学期 個別面談 (教育相談)" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">学校名 / 機関名</label>
+          <input type="text" id="setting-school-name" value="緑ヶ丘中学校" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">保護者希望の提出締切日時</label>
+          <input type="datetime-local" id="setting-deadline-date" value="2026-10-10T23:59" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">控室・当日の注意事項</label>
+          <input type="text" id="setting-notice-text" value="開始5分前までに各学年控室へお越しください。上履きをご持参ください。" class="w-full border border-slate-300 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="saveEventMetadata()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition">
+          イベント情報を保存
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 space-y-4">
+      <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+        <span>💾</span> データの保存・復元 ＆ 本番運用開始
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+        <button onclick="backupSystemDataJSON()" class="p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-xl text-left transition space-y-1">
+          <div class="text-base">📦</div>
+          <div class="font-bold text-xs text-slate-800">全データをJSON保存</div>
+          <p class="text-[11px] text-slate-500">全設定・希望状況を書き出します</p>
+        </button>
+
+        <label class="p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-xl text-left transition space-y-1 cursor-pointer">
+          <div class="text-base">📥</div>
+          <div class="font-bold text-xs text-slate-800">JSONバックアップから復元</div>
+          <p class="text-[11px] text-slate-500">保存したファイルを読み込みます</p>
+          <input type="file" id="backup-json-upload" accept=".json" class="hidden" onchange="restoreSystemDataJSON(event)">
+        </label>
+
+        <button onclick="confirmClearDemoData()" class="p-4 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl text-left transition space-y-1">
+          <div class="text-base">🧹</div>
+          <div class="font-bold text-xs text-rose-800">デモ消去（本番開始）</div>
+          <p class="text-[11px] text-rose-600">サンプル生徒を消し、0名から開始します</p>
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 space-y-4">
+      <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+        <span>🔐</span> 教員認証パスコードの変更
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">現在のパスコード</label>
+          <input type="password" id="passcode-current" placeholder="現在の暗証番号" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">新しいパスコード</label>
+          <input type="password" id="passcode-new" placeholder="新しい暗証番号" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">新しいパスコード (確認用)</label>
+          <input type="password" id="passcode-confirm" placeholder="もう一度入力" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="changeTeacherPasscode()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition">
+          パスコードを更新
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       JavaScript ロジック部
+       ========================================================================= -->
+  <script>
+    const STATE = {
+      isTeacherAuthenticated: false,
+      teacherPasscode: '1234',
+      currentView: 'parent-portal',
+      selectedDate: '2026-10-15',
+      printMode: 'summary',
+      summaryPrivacyNumberOnly: false,
+      letterType: 'survey',
+      isCustomLetterEditing: false,
+      customLetterText: '',
+
+      eventMeta: {
+        title: '令和8年度 2学期 個別面談 (教育相談)',
+        schoolName: '緑ヶ丘中学校',
+        deadline: '2026-10-10T23:59',
+        notice: '開始5分前までに各学年控室へお越しください。上履きをご持参ください。',
+        meetingType: '対面面談 (各教室)'
+      },
+
+      configuredDates: ['2026-10-15', '2026-10-16'],
+
+      teachers: [
+        { id: 't1', name: '山田 健一 先生', class: '1年1組', room: '1年1組 教室', onlineUrl: '' },
+        { id: 't2', name: '高橋 涼子 先生', class: '3年1組', room: '3年1組 教室', onlineUrl: '' },
+      ],
+
+      siblingGroups: {
+        'F-SATO': { id: 'F-SATO', familyName: '佐藤', members: ['stu-1', 'stu-8'] },
+        'F-TANAKA': { id: 'F-TANAKA', familyName: '田中', members: ['stu-2', 'stu-9'] }
+      },
+
+      students: [
+        { id: 'stu-1', studentNumber: 1, name: '佐藤 太郎', gradeClass: '1年1組', pin: '1011', siblingGroupId: 'F-SATO' },
+        { id: 'stu-2', studentNumber: 2, name: '田中 蓮', gradeClass: '1年1組', pin: '1012', siblingGroupId: 'F-TANAKA' },
+        { id: 'stu-3', studentNumber: 3, name: '鈴木 花子', gradeClass: '1年1組', pin: '1013', siblingGroupId: null },
+        { id: 'stu-4', studentNumber: 4, name: '渡辺 陸', gradeClass: '1年1組', pin: '1014', siblingGroupId: null },
+        { id: 'stu-5', studentNumber: 5, name: '小林 結衣', gradeClass: '1年1組', pin: '1015', siblingGroupId: null },
+        { id: 'stu-6', studentNumber: 6, name: '加藤 颯太', gradeClass: '1年1組', pin: '1016', siblingGroupId: null },
+
+        { id: 'stu-7', studentNumber: 1, name: '伊藤 陽翔', gradeClass: '3年1組', pin: '3021', siblingGroupId: null },
+        { id: 'stu-8', studentNumber: 2, name: '佐藤 次郎', gradeClass: '3年1組', pin: '3022', siblingGroupId: 'F-SATO' },
+        { id: 'stu-9', studentNumber: 3, name: '田中 葵', gradeClass: '3年1組', pin: '3023', siblingGroupId: 'F-TANAKA' },
+        { id: 'stu-10', studentNumber: 4, name: '中村 美羽', gradeClass: '3年1組', pin: '3024', siblingGroupId: null },
+        { id: 'stu-11', studentNumber: 5, name: '木村 翼', gradeClass: '3年1組', pin: '3025', siblingGroupId: null },
+        { id: 'stu-12', studentNumber: 6, name: '山本 奏', gradeClass: '3年1組', pin: '3026', siblingGroupId: null },
+      ],
+
+      slots: [],
+      preferences: {},
+      assignment: {},
+      reverseAssignment: {},
+      unassignedStudents: [],
+      authenticatedStudentId: null
+    };
+
+    function initializeDefaultSlots() {
+      const dates = ['2026-10-15', '2026-10-16'];
+      const times = [
+        { start: '13:30', end: '13:45' },
+        { start: '13:50', end: '14:05' },
+        { start: '14:10', end: '14:25' },
+        { start: '14:30', end: '14:45' },
+        { start: '14:50', end: '15:05' },
+        { start: '15:10', end: '15:25' },
+        { start: '15:30', end: '15:45' },
+      ];
+
+      const slots = [];
+      let slotCounter = 1;
+
+      dates.forEach(d => {
+        STATE.teachers.forEach(teacher => {
+          times.forEach(t => {
+            const isBlocked = (d === '2026-10-15' && t.start === '14:30' && teacher.id === 't1');
+            slots.push({
+              id: `slot-${slotCounter++}`,
+              date: d,
+              startTime: t.start,
+              endTime: t.end,
+              teacherId: teacher.id,
+              teacherName: teacher.name,
+              room: teacher.room,
+              isBlocked: isBlocked,
+              blockReason: isBlocked ? '校務・不在枠' : ''
+            });
+          });
+        });
+      });
+      STATE.slots = slots;
+
+      STATE.preferences = {
+        'stu-1': { desiredRanks: { 'slot-1': 1, 'slot-2': 2, 'slot-3': 3 }, ngSlots: new Set(['slot-5']), consecutiveSiblingRequested: true },
+        'stu-8': { desiredRanks: { 'slot-8': 1, 'slot-9': 2, 'slot-10': 3 }, ngSlots: new Set(), consecutiveSiblingRequested: true },
+        'stu-2': { desiredRanks: { 'slot-15': 1, 'slot-16': 2, 'slot-17': 3 }, ngSlots: new Set(), consecutiveSiblingRequested: true },
+        'stu-9': { desiredRanks: { 'slot-22': 1, 'slot-23': 2, 'slot-24': 3 }, ngSlots: new Set(), consecutiveSiblingRequested: true },
+        'stu-3': { desiredRanks: { 'slot-2': 1, 'slot-3': 2, 'slot-4': 3 }, ngSlots: new Set(['slot-1']), consecutiveSiblingRequested: false },
+        'stu-4': { desiredRanks: { 'slot-3': 1, 'slot-4': 2, 'slot-6': 3 }, ngSlots: new Set(), consecutiveSiblingRequested: false },
+        'stu-5': { desiredRanks: { 'slot-6': 1, 'slot-7': 2, 'slot-16': 3 }, ngSlots: new Set(), consecutiveSiblingRequested: false },
+        'stu-7': { desiredRanks: { 'slot-9': 1, 'slot-10': 2, 'slot-11': 3 }, ngSlots: new Set(), consecutiveSiblingRequested: false },
+        'stu-10': { desiredRanks: { 'slot-11': 1, 'slot-12': 2, 'slot-13': 3 }, ngSlots: new Set(), consecutiveSiblingRequested: false },
+      };
+    }
+
+    function getSlotScore(pref, slot) {
+      if (slot.isBlocked) return -Infinity;
+      if (pref.ngSlots && pref.ngSlots.has(slot.id)) return -Infinity;
+
+      const rank = pref.desiredRanks ? pref.desiredRanks[slot.id] : null;
+      if (rank === 1) return 100;
+      if (rank === 2) return 60;
+      if (rank === 3) return 30;
+      return 5;
+    }
+
+    function getProximityBonus(slotA, slotB) {
+      if (slotA.date !== slotB.date) return 0;
+      const [h1, m1] = slotA.startTime.split(':').map(Number);
+      const [h2, m2] = slotB.startTime.split(':').map(Number);
+      const diffMinutes = Math.abs((h1 * 60 + m1) - (h2 * 60 + m2));
+
+      if (diffMinutes <= 25) return 85;
+      if (diffMinutes <= 60) return 40;
+      return 15;
+    }
+
+    function runAutoMatching() {
+      const matchBtn = document.getElementById('btn-run-automatch');
+      const matchIcon = document.getElementById('icon-automatch');
+      const matchLabel = document.getElementById('label-automatch');
+
+      if (matchBtn) {
+        matchBtn.disabled = true;
+        matchBtn.classList.add('opacity-90', 'cursor-wait');
+        if (matchLabel) matchLabel.innerText = '最適割り当てを計算中...';
+        if (matchIcon) matchIcon.classList.add('animate-spin');
+      }
+
+      setTimeout(() => {
+        const assignment = {};
+        const reverseAssignment = {};
+        const siblingAssignedSlots = {};
+
+        const studentIdsWithPref = Object.keys(STATE.preferences);
+        const studentsToMatch = STATE.students.filter(s => studentIdsWithPref.includes(s.id));
+
+        studentsToMatch.sort((a, b) => {
+          const prefA = STATE.preferences[a.id];
+          const prefB = STATE.preferences[b.id];
+          const countA = Object.keys(prefA.desiredRanks || {}).length;
+          const countB = Object.keys(prefB.desiredRanks || {}).length;
+          if (countA !== countB) return countA - countB;
+          return (b.siblingGroupId ? 1 : 0) - (a.siblingGroupId ? 1 : 0);
+        });
+
+        const availableSlots = STATE.slots.filter(s => !s.isBlocked);
+
+        for (const student of studentsToMatch) {
+          const pref = STATE.preferences[student.id];
+          const teacher = STATE.teachers.find(t => t.class === student.gradeClass);
+          const targetTeacherId = teacher ? teacher.id : null;
+
+          let bestSlot = null;
+          let maxScore = -Infinity;
+
+          for (const slot of availableSlots) {
+            if (targetTeacherId && slot.teacherId !== targetTeacherId) continue;
+            if (assignment[slot.id]) continue;
+
+            const baseScore = getSlotScore(pref, slot);
+            if (baseScore <= 0) continue;
+
+            let totalScore = baseScore;
+            if (student.siblingGroupId && pref.consecutiveSiblingRequested) {
+              const siblingSlots = siblingAssignedSlots[student.siblingGroupId] || [];
+              siblingSlots.forEach(sibSlot => {
+                totalScore += getProximityBonus(slot, sibSlot);
+              });
+            }
+
+            if (totalScore > maxScore) {
+              maxScore = totalScore;
+              bestSlot = slot;
+            }
+          }
+
+          if (bestSlot) {
+            assignment[bestSlot.id] = student.id;
+            reverseAssignment[student.id] = bestSlot.id;
+
+            if (student.siblingGroupId) {
+              siblingAssignedSlots[student.siblingGroupId] = siblingAssignedSlots[student.siblingGroupId] || [];
+              siblingAssignedSlots[student.siblingGroupId].push(bestSlot);
+            }
+          }
+        }
+
+        STATE.assignment = assignment;
+        STATE.reverseAssignment = reverseAssignment;
+        STATE.unassignedStudents = STATE.students.filter(s => !reverseAssignment[s.id]);
+
+        let rank1Count = 0, rank2Count = 0, rank3Count = 0, otherCount = 0;
+        for (const [slotId, stuId] of Object.entries(assignment)) {
+          const pref = STATE.preferences[stuId];
+          if (pref && pref.desiredRanks) {
+            const r = pref.desiredRanks[slotId];
+            if (r === 1) rank1Count++;
+            else if (r === 2) rank2Count++;
+            else if (r === 3) rank3Count++;
+            else otherCount++;
+          } else {
+            otherCount++;
+          }
+        }
+
+        renderDashboard();
+
+        if (matchBtn) {
+          matchBtn.disabled = false;
+          matchBtn.classList.remove('opacity-90', 'cursor-wait');
+          if (matchLabel) matchLabel.innerText = '✓ 最適割り当て完了！';
+          if (matchIcon) matchIcon.classList.remove('animate-spin');
+
+          setTimeout(() => {
+            if (matchLabel) matchLabel.innerText = '最適自動割り当てを実行 (兄弟優先)';
+          }, 2400);
+        }
+
+        showToast(`🎉 最適割り当て完了！第1希望:${rank1Count}件, 第2希望:${rank2Count}件, 第3希望:${rank3Count}件`, 'success');
+      }, 250);
+    }
+
+    function handleLogoClick() {
+      if (STATE.isTeacherAuthenticated) {
+        switchView('teacher-dashboard');
+      } else {
+        switchView('parent-portal');
+      }
+    }
+
+    function switchView(viewName) {
+      if (viewName.startsWith('teacher-') && !STATE.isTeacherAuthenticated) {
+        openAuthModal(viewName);
+        return;
+      }
+
+      STATE.currentView = viewName;
+
+      ['view-teacher-dashboard', 'view-teacher-confirmed', 'view-teacher-roster', 'view-teacher-slots', 'view-teacher-letter', 'view-teacher-print', 'view-teacher-system', 'view-parent-portal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+
+      ['dashboard', 'confirmed', 'roster', 'slots', 'letter', 'print', 'system'].forEach(k => {
+        const btn = document.getElementById(`nav-btn-${k}`);
+        if (btn) btn.className = 'px-3 py-1.5 rounded-lg transition text-indigo-200 hover:text-white flex items-center gap-1';
+      });
+
+      const parentSwitchBtn = document.getElementById('btn-parent-switch');
+      const modeBadge = document.getElementById('header-mode-badge');
+      const teacherGroup = document.getElementById('teacher-nav-group');
+      const authBtn = document.getElementById('btn-auth-toggle');
+      const authBtnLabel = document.getElementById('auth-btn-label');
+      const authBtnIcon = document.getElementById('auth-btn-icon');
+
+      if (viewName === 'parent-portal') {
+        const parentPortalEl = document.getElementById('view-parent-portal');
+        if (parentPortalEl) parentPortalEl.classList.remove('hidden');
+
+        if (teacherGroup) teacherGroup.classList.add('hidden');
+        if (parentSwitchBtn) parentSwitchBtn.classList.add('hidden');
+
+        if (modeBadge) {
+          modeBadge.innerText = '保護者ポータル';
+          modeBadge.className = 'text-[11px] bg-slate-700 text-white font-semibold px-2 py-0.5 rounded-full hidden sm:inline-block';
+        }
+
+        if (STATE.isTeacherAuthenticated) {
+          if (authBtnIcon) authBtnIcon.innerText = '🔓';
+          if (authBtnLabel) authBtnLabel.innerText = '管理画面へ';
+          if (authBtn) authBtn.className = 'px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-white border border-indigo-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs';
+        } else {
+          if (authBtnIcon) authBtnIcon.innerText = '🔒';
+          if (authBtnLabel) authBtnLabel.innerText = '教職員はこちら';
+          if (authBtn) authBtn.className = 'px-2.5 py-1.5 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-300 hover:text-white border border-indigo-800/80 rounded-xl text-xs font-medium flex items-center gap-1.5 transition';
+        }
+
+        const previewNotice = document.getElementById('parent-preview-notice');
+        if (previewNotice) {
+          if (STATE.isTeacherAuthenticated) previewNotice.classList.remove('hidden');
+          else previewNotice.classList.add('hidden');
+        }
+
+        updateClassSelectOptions();
+      } else {
+        const targetViewEl = document.getElementById(`view-${viewName}`);
+        if (targetViewEl) targetViewEl.classList.remove('hidden');
+
+        if (teacherGroup) teacherGroup.classList.remove('hidden');
+        if (parentSwitchBtn) {
+          parentSwitchBtn.classList.remove('hidden');
+          parentSwitchBtn.className = 'px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-indigo-100 border border-indigo-600/50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition';
+        }
+
+        const activeNavKey = viewName.replace('teacher-', '');
+        const activeNavBtn = document.getElementById(`nav-btn-${activeNavKey}`);
+        if (activeNavBtn) activeNavBtn.className = 'px-3 py-1.5 rounded-lg transition text-white bg-indigo-600 shadow-sm flex items-center gap-1 font-semibold';
+
+        if (modeBadge) {
+          modeBadge.innerText = '教員管理モード';
+          modeBadge.className = 'text-[11px] bg-emerald-600 text-white font-semibold px-2 py-0.5 rounded-full hidden sm:inline-block';
+        }
+
+        if (authBtnIcon) authBtnIcon.innerText = '🚪';
+        if (authBtnLabel) authBtnLabel.innerText = 'ログアウト';
+        if (authBtn) authBtn.className = 'px-3 py-1.5 bg-rose-900 hover:bg-rose-800 text-rose-100 border border-rose-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition';
+
+        if (viewName === 'teacher-dashboard') renderDashboard();
+        else if (viewName === 'teacher-confirmed') renderConfirmedTable();
+        else if (viewName === 'teacher-roster') renderRosterTable();
+        else if (viewName === 'teacher-slots') {
+          renderTeachersTable();
+          renderConfiguredDatesList();
+        }
+        else if (viewName === 'teacher-letter') renderLetterPreview();
+        else if (viewName === 'teacher-print') renderPrintArea();
+      }
+    }
+
+    function renderDashboard() {
+      const dates = [...new Set(STATE.slots.map(s => s.date))];
+      if (dates.length > 0 && !dates.includes(STATE.selectedDate)) {
+        STATE.selectedDate = dates[0];
+      }
+      const tabsHtml = dates.map(d => {
+        const isSelected = d === STATE.selectedDate;
+        return `
+          <button onclick="selectDate('${d}')" class="px-3 py-1 rounded-lg transition ${isSelected ? 'bg-white text-indigo-950 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'}">
+            ${d}
+          </button>
+        `;
+      }).join('');
+      document.getElementById('date-tabs').innerHTML = tabsHtml;
+
+      const totalStudents = STATE.students.length;
+      const submittedCount = Object.keys(STATE.preferences).length;
+      const assignedCount = Object.keys(STATE.reverseAssignment).length;
+      const unassignedCount = STATE.unassignedStudents.length;
+
+      document.getElementById('metric-submission-rate').innerText = `${submittedCount} / ${totalStudents}`;
+      const pct = totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0;
+      document.getElementById('metric-submission-pct').innerText = `${pct}%`;
+      document.getElementById('bar-submission-rate').style.width = `${pct}%`;
+      document.getElementById('metric-assigned-count').innerText = assignedCount;
+      document.getElementById('metric-assigned-total').innerText = `/ ${totalStudents} 名`;
+
+      let siblingSuccessCount = 0;
+      let totalSiblingPairs = 0;
+      for (const grp of Object.values(STATE.siblingGroups)) {
+        if (grp.members.length >= 2) {
+          totalSiblingPairs++;
+          const slot1 = STATE.slots.find(s => s.id === STATE.reverseAssignment[grp.members[0]]);
+          const slot2 = STATE.slots.find(s => s.id === STATE.reverseAssignment[grp.members[1]]);
+          if (slot1 && slot2 && slot1.date === slot2.date) {
+            siblingSuccessCount++;
+          }
+        }
+      }
+      document.getElementById('metric-sibling-success').innerText = assignedCount > 0 ? `${siblingSuccessCount} / ${totalSiblingPairs} 世帯` : '-';
+      document.getElementById('metric-sibling-pairs').innerText = `${totalSiblingPairs}世帯対象`;
+
+      const unassignedBadge = document.getElementById('badge-conflict');
+      const unassignedMetric = document.getElementById('metric-unassigned-count');
+      unassignedMetric.innerText = unassignedCount;
+      if (unassignedCount > 0 && assignedCount > 0) {
+        unassignedBadge.innerText = '要確認';
+        unassignedBadge.className = 'text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full';
+        document.getElementById('unassigned-alert-box').classList.remove('hidden');
+      } else {
+        unassignedBadge.innerText = '正常';
+        unassignedBadge.className = 'text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full';
+        document.getElementById('unassigned-alert-box').classList.add('hidden');
+      }
+
+      const filteredSlots = STATE.slots.filter(s => s.date === STATE.selectedDate);
+      const tbody = document.getElementById('slot-table-body');
+
+      tbody.innerHTML = filteredSlots.map(slot => {
+        const studentId = STATE.assignment[slot.id];
+        const student = studentId ? STATE.students.find(s => s.id === studentId) : null;
+        const pref = student ? STATE.preferences[student.id] : null;
+
+        const candidates = [];
+        STATE.students.forEach(st => {
+          const p = STATE.preferences[st.id];
+          if (p && p.desiredRanks && p.desiredRanks[slot.id]) {
+            candidates.push({ name: st.name, rank: p.desiredRanks[slot.id] });
+          }
+        });
+        candidates.sort((a, b) => a.rank - b.rank);
+
+        let candidatesHtml = '';
+        if (candidates.length > 0) {
+          candidatesHtml = `
+            <div class="text-[10px] text-slate-500 mt-1 flex items-center gap-1 flex-wrap">
+              <span class="text-slate-400">希望者:</span>
+              ${candidates.map(c => `
+                <span class="px-1.5 py-0.2 rounded font-medium ${c.rank === 1 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : (c.rank === 2 ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-sky-50 text-sky-700 border border-sky-200')}">
+                  第${c.rank}: ${c.name}
+                </span>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        let siblingBadge = '';
+        if (student && student.siblingGroupId) {
+          const grp = STATE.siblingGroups[student.siblingGroupId];
+          if (grp) {
+            const otherMemberId = grp.members.find(id => id !== student.id);
+            const otherMember = STATE.students.find(s => s.id === otherMemberId);
+            const otherSlotId = STATE.reverseAssignment[otherMemberId];
+            const otherSlot = otherSlotId ? STATE.slots.find(s => s.id === otherSlotId) : null;
+            const isSameDay = otherSlot && otherSlot.date === slot.date;
+
+            siblingBadge = `
+              <div class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded border ${isSameDay ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-50 text-slate-600 border-slate-200'}">
+                <span>👨‍👩‍👧</span>
+                <span>兄弟: ${otherMember ? otherMember.name : ''} (${isSameDay ? '同日' : '別日'})</span>
+              </div>
+            `;
+          }
+        }
+
+        let rankBadge = '';
+        if (student && pref) {
+          const rank = pref.desiredRanks ? pref.desiredRanks[slot.id] : null;
+          if (rank === 1) rankBadge = '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded">第1希望</span>';
+          else if (rank === 2) rankBadge = '<span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[11px] font-bold rounded">第2希望</span>';
+          else if (rank === 3) rankBadge = '<span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[11px] font-bold rounded">第3希望</span>';
+          else rankBadge = '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] rounded">希望外調整</span>';
+        }
+
+        let studentCellContent = '';
+        if (slot.isBlocked) {
+          studentCellContent = `<div class="text-rose-600 text-xs font-semibold">🚫 ${slot.blockReason || '面談除外枠'}</div>`;
+        } else if (student) {
+          studentCellContent = `
+            <div>
+              <div class="font-bold text-slate-900 flex items-center gap-2">
+                <span>${student.name}</span>
+                <span class="text-[11px] px-2 py-0.2 rounded bg-slate-100 text-slate-700 font-medium">${student.gradeClass} ${student.studentNumber ? student.studentNumber + '番' : ''}</span>
+              </div>
+              ${candidatesHtml}
+            </div>
+          `;
+        } else {
+          studentCellContent = `
+            <div>
+              <span class="text-slate-400 italic text-xs">空き枠 (未割り当て)</span>
+              ${candidatesHtml}
+            </div>
+          `;
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition ${slot.isBlocked ? 'bg-rose-50/40' : ''}">
+            <td class="px-5 py-3 font-mono font-medium text-slate-700 whitespace-nowrap">
+              ${slot.startTime} - ${slot.endTime}
+            </td>
+            <td class="px-5 py-3 text-slate-800">
+              <div class="font-semibold text-xs text-indigo-950">${slot.teacherName}</div>
+              <div class="text-[11px] text-slate-500">${slot.room}</div>
+            </td>
+            <td class="px-5 py-3">
+              ${studentCellContent}
+            </td>
+            <td class="px-5 py-3 space-y-1">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                ${rankBadge}
+                ${siblingBadge}
+              </div>
+            </td>
+            <td class="px-5 py-3 text-center">
+              ${slot.isBlocked ? `
+                <button onclick="toggleSlotBlock('${slot.id}')" class="text-xs text-slate-500 hover:text-slate-800 underline">解除</button>
+              ` : `
+                <button onclick="openSlotActionModal('${slot.id}')" class="px-2.5 py-1 text-xs bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-700 font-medium transition shadow-2xs">
+                  ${student ? '変更' : '手動割当'}
+                </button>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function selectDate(d) {
+      STATE.selectedDate = d;
+      renderDashboard();
+    }
+
+    function toggleSlotBlock(slotId) {
+      const slot = STATE.slots.find(s => s.id === slotId);
+      if (!slot) return;
+      slot.isBlocked = !slot.isBlocked;
+      if (slot.isBlocked) {
+        const assignedStudent = STATE.assignment[slot.id];
+        if (assignedStudent) {
+          delete STATE.reverseAssignment[assignedStudent];
+          delete STATE.assignment[slot.id];
+        }
+      }
+      renderDashboard();
+      showToast(slot.isBlocked ? 'スロットを除外設定にしました。' : 'スロットの除外を解除しました。', 'info');
+    }
+
+    function getRegisteredClasses() {
+      const classSet = new Set();
+      STATE.teachers.forEach(t => {
+        if (t.class && t.class.trim()) classSet.add(t.class.trim());
+      });
+      STATE.students.forEach(s => {
+        if (s.gradeClass && s.gradeClass.trim()) classSet.add(s.gradeClass.trim());
+      });
+      if (classSet.size === 0) {
+        classSet.add('1年1組');
+      }
+      return Array.from(classSet).sort();
+    }
+
+    function updateClassSelectOptions() {
+      const select = document.getElementById('parent-login-class');
+      if (!select) return;
+
+      const currentVal = select.value;
+      const classMap = new Map();
+
+      STATE.teachers.forEach(t => {
+        if (t.class) classMap.set(t.class, t.name);
+      });
+      STATE.students.forEach(s => {
+        if (s.gradeClass && !classMap.has(s.gradeClass)) {
+          classMap.set(s.gradeClass, '');
+        }
+      });
+
+      if (classMap.size === 0) {
+        select.innerHTML = '<option value="">学級が未登録です</option>';
+        return;
+      }
+
+      select.innerHTML = Array.from(classMap.entries()).map(([cls, teacherName]) => {
+        const label = teacherName ? `${cls} (担任: ${teacherName})` : cls;
+        const selected = cls === currentVal ? 'selected' : '';
+        return `<option value="${cls}" ${selected}>${label}</option>`;
+      }).join('');
+    }
+
+    function renderRosterTable(studentsToRender = STATE.students) {
+      const tbody = document.getElementById('roster-table-body');
+      document.getElementById('roster-count-total').innerText = STATE.students.length;
+      document.getElementById('roster-sibling-total').innerText = Object.keys(STATE.siblingGroups).length;
+
+      if (studentsToRender.length === 0) {
+        tbody.innerHTML = `
+          <tr><td colspan="8" class="px-5 py-8 text-center text-slate-400 text-xs">生徒データが登録されていません。CSV一括取り込みまたは「生徒を追加」から登録してください。</td></tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = studentsToRender.map(student => {
+        const pref = STATE.preferences[student.id];
+        const hasPref = pref && Object.keys(pref.desiredRanks || {}).length > 0;
+        const assignedSlotId = STATE.reverseAssignment[student.id];
+        const assignedSlot = assignedSlotId ? STATE.slots.find(s => s.id === assignedSlotId) : null;
+
+        let prefDetailsHtml = '<span class="text-slate-400 italic">未提出</span>';
+        if (hasPref) {
+          const rankItems = [];
+          for (let r = 1; r <= 3; r++) {
+            const slotId = Object.keys(pref.desiredRanks).find(id => pref.desiredRanks[id] === r);
+            const slot = slotId ? STATE.slots.find(s => s.id === slotId) : null;
+            if (slot) {
+              const colorClass = r === 1 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : (r === 2 ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-sky-700 bg-sky-50 border-sky-200');
+              rankItems.push(`
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] ${colorClass}">
+                  第${r}: ${slot.date.slice(5)} ${slot.startTime}
+                </span>
+              `);
+            }
+          }
+          prefDetailsHtml = rankItems.length > 0 ? `<div class="flex flex-wrap gap-1">${rankItems.join('')}</div>` : '<span class="text-slate-400">希望枠なし</span>';
+        }
+
+        let statusBadge = '<span class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[11px]">未確定</span>';
+        if (assignedSlot) {
+          const rank = pref && pref.desiredRanks ? pref.desiredRanks[assignedSlot.id] : null;
+          const rankLabel = rank ? `(第${rank}希望)` : '(希望外)';
+          statusBadge = `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[11px] font-bold">確定 ${rankLabel}</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition text-xs">
+            <td class="px-4 py-2.5 font-bold text-slate-700">${student.gradeClass}</td>
+            <td class="px-3 py-2.5 text-slate-500">${student.studentNumber || '-'}</td>
+            <td class="px-4 py-2.5 font-semibold text-slate-900">${student.name}</td>
+            <td class="px-3 py-2.5">
+              ${student.siblingGroupId ? `
+                <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded font-mono text-[11px]">${student.siblingGroupId}</span>
+              ` : '<span class="text-slate-300">-</span>'}
+            </td>
+            <td class="px-3 py-2.5 font-mono font-bold text-indigo-900">${student.pin}</td>
+            <td class="px-4 py-2.5">${prefDetailsHtml}</td>
+            <td class="px-3 py-2.5 text-center">${statusBadge}</td>
+            <td class="px-3 py-2.5 text-center space-x-1 whitespace-nowrap">
+              <button onclick="editStudent('${student.id}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 text-[11px]">編集</button>
+              <button onclick="deleteStudent('${student.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 rounded text-rose-600 text-[11px]">削除</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterRosterTable() {
+      const q = document.getElementById('roster-search-input').value.trim().toLowerCase();
+      if (!q) {
+        renderRosterTable();
+        return;
+      }
+      const filtered = STATE.students.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.gradeClass.toLowerCase().includes(q)
+      );
+      renderRosterTable(filtered);
+    }
+
+    // ==========================================
+    // 担当学級・教員 設定機能
+    // ==========================================
+    function renderTeachersTable() {
+      const tbody = document.getElementById('teacher-table-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = STATE.teachers.map((t) => {
+        const slotCount = STATE.slots.filter(s => s.teacherId === t.id).length;
+        return `
+          <tr class="hover:bg-slate-50/80 transition text-xs">
+            <td class="px-3 py-2.5">
+              <input type="text" id="inline-teacher-class-${t.id}" value="${t.class}" placeholder="例: 1年1組"
+                class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 bg-white">
+            </td>
+            <td class="px-3 py-2.5">
+              <input type="text" id="inline-teacher-name-${t.id}" value="${t.name}" placeholder="例: 山田 健一 先生"
+                class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 font-semibold text-indigo-950 focus:ring-2 focus:ring-indigo-500 bg-white">
+            </td>
+            <td class="px-3 py-2.5">
+              <input type="text" id="inline-teacher-room-${t.id}" value="${t.room}" placeholder="例: 1年1組 教室"
+                class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-700 focus:ring-2 focus:ring-indigo-500 bg-white">
+            </td>
+            <td class="px-3 py-2.5">
+              <input type="text" id="inline-teacher-url-${t.id}" value="${t.onlineUrl || ''}" placeholder="https://meet.google.com/..."
+                class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-500 font-mono text-[11px] focus:ring-2 focus:ring-indigo-500 bg-white">
+            </td>
+            <td class="px-3 py-2.5 font-mono font-bold text-slate-700 text-center">${slotCount} 枠</td>
+            <td class="px-3 py-2.5 text-center space-x-1 whitespace-nowrap">
+              <button onclick="saveSingleTeacherInline('${t.id}')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 font-semibold rounded text-[11px] transition">保存</button>
+              <button onclick="deleteTeacher('${t.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded text-[11px] transition">削除</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      updateSettingsPreview();
+    }
+
+    function saveSingleTeacherInline(teacherId) {
+      const teacher = STATE.teachers.find(t => t.id === teacherId);
+      if (!teacher) return;
+
+      const classInput = document.getElementById(`inline-teacher-class-${teacherId}`);
+      const nameInput = document.getElementById(`inline-teacher-name-${teacherId}`);
+      const roomInput = document.getElementById(`inline-teacher-room-${teacherId}`);
+      const urlInput = document.getElementById(`inline-teacher-url-${teacherId}`);
+
+      const newClass = classInput.value.trim();
+      const newName = nameInput.value.trim();
+      const newRoom = roomInput.value.trim();
+      const newUrl = urlInput.value.trim();
+
+      if (!newClass || !newName) {
+        showToast('学級名と教員氏名は必須です。', 'error');
+        return;
+      }
+
+      const oldClass = teacher.class;
+      teacher.class = newClass;
+      teacher.name = newName;
+      teacher.room = newRoom || `${newClass} 教室`;
+      teacher.onlineUrl = newUrl;
+
+      if (oldClass !== newClass) {
+        STATE.students.forEach(s => {
+          if (s.gradeClass === oldClass) s.gradeClass = newClass;
+        });
+      }
+
+      STATE.slots.forEach(s => {
+        if (s.teacherId === teacherId) {
+          s.teacherName = newName;
+          s.room = teacher.room;
+        }
+      });
+
+      renderDashboard();
+      updateClassSelectOptions();
+      renderRosterTable();
+      showToast(`「${newClass}（${newName}）」の設定を更新しました！`, 'success');
+    }
+
+    function saveAllTeachersInline() {
+      let updatedCount = 0;
+      STATE.teachers.forEach(teacher => {
+        const classInput = document.getElementById(`inline-teacher-class-${teacher.id}`);
+        const nameInput = document.getElementById(`inline-teacher-name-${teacher.id}`);
+        const roomInput = document.getElementById(`inline-teacher-room-${teacher.id}`);
+        const urlInput = document.getElementById(`inline-teacher-url-${teacher.id}`);
+
+        if (classInput && nameInput) {
+          const newClass = classInput.value.trim();
+          const newName = nameInput.value.trim();
+          if (newClass && newName) {
+            const oldClass = teacher.class;
+            teacher.class = newClass;
+            teacher.name = newName;
+            teacher.room = (roomInput && roomInput.value.trim()) || `${newClass} 教室`;
+            teacher.onlineUrl = (urlInput && urlInput.value.trim()) || '';
+
+            if (oldClass !== newClass) {
+              STATE.students.forEach(s => {
+                if (s.gradeClass === oldClass) s.gradeClass = newClass;
+              });
+            }
+            STATE.slots.forEach(s => {
+              if (s.teacherId === teacher.id) {
+                s.teacherName = newName;
+                s.room = teacher.room;
+              }
+            });
+            updatedCount++;
+          }
+        }
+      });
+
+      renderDashboard();
+      updateClassSelectOptions();
+      renderRosterTable();
+      showToast(`全 ${updatedCount} 名の教員・学級設定を保存しました！`, 'success');
+    }
+
+    function deleteTeacher(teacherId) {
+      const teacher = STATE.teachers.find(t => t.id === teacherId);
+      if (!teacher) return;
+
+      if (STATE.teachers.length <= 1) {
+        showToast('学級・教員は最低1つ登録されている必要があります。', 'error');
+        return;
+      }
+
+      const studentCount = STATE.students.filter(s => s.gradeClass === teacher.class).length;
+      const slotCount = STATE.slots.filter(s => s.teacherId === teacher.id).length;
+
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      const modalFooter = document.getElementById('modal-footer');
+
+      modalTitle.innerText = `学級・担当教員の削除確認`;
+      modalBody.innerHTML = `
+        <div class="space-y-3 text-xs text-slate-700">
+          <p class="font-bold text-rose-700 text-sm">「${teacher.class}（${teacher.name}）」を削除しますか？</p>
+          <div class="bg-rose-50 border border-rose-200 p-3 rounded-xl space-y-1">
+            <p>• 所属生徒数: <strong>${studentCount} 名</strong></p>
+            <p>• 生成済みの面談枠数: <strong>${slotCount} 枠</strong></p>
+          </div>
+          <p class="text-slate-500 leading-relaxed">
+            ※削除を実行すると、この学級の面談枠および確定スケジュールは自動的に解除・削除されます。所属生徒の学級は残りの学級へ自動的に引き継がれます。
+          </p>
+        </div>
+      `;
+      modalFooter.innerHTML = `
+        <button onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50">キャンセル</button>
+        <button onclick="executeDeleteTeacher('${teacherId}')" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs">完全に削除する</button>
+      `;
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function executeDeleteTeacher(teacherId) {
+      const teacher = STATE.teachers.find(t => t.id === teacherId);
+      if (!teacher) {
+        closeModal();
+        return;
+      }
+
+      const targetClass = teacher.class;
+
+      const removedSlotIds = new Set(STATE.slots.filter(s => s.teacherId === teacherId).map(s => s.id));
+      STATE.slots = STATE.slots.filter(s => s.teacherId !== teacherId);
+
+      for (const slotId of removedSlotIds) {
+        const studentId = STATE.assignment[slotId];
+        if (studentId) {
+          delete STATE.reverseAssignment[studentId];
+          delete STATE.assignment[slotId];
+        }
+      }
+
+      STATE.teachers = STATE.teachers.filter(t => t.id !== teacherId);
+
+      const fallbackClass = STATE.teachers.length > 0 ? STATE.teachers[0].class : '未設定';
+      STATE.students.forEach(s => {
+        if (s.gradeClass === targetClass) {
+          s.gradeClass = fallbackClass;
+        }
+      });
+
+      closeModal();
+      renderTeachersTable();
+      renderDashboard();
+      renderRosterTable();
+      updateClassSelectOptions();
+      showToast(`学級「${targetClass}」と担当教員を削除しました。`, 'info');
+    }
+
+    function openAddTeacherModal() {
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      const modalFooter = document.getElementById('modal-footer');
+
+      modalTitle.innerText = '担当学級・教員の追加';
+      modalBody.innerHTML = `
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">学級名 (クラス名) <span class="text-rose-500">*</span></label>
+            <input type="text" id="modal-add-teacher-class" placeholder="例: 2年1組, 1年C組" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">教員氏名 (担任名) <span class="text-rose-500">*</span></label>
+            <input type="text" id="modal-add-teacher-name" placeholder="例: 鈴木 一郎 先生" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">面談会場 / 教室名</label>
+            <input type="text" id="modal-add-teacher-room" placeholder="例: 2年1組 教室, 第1相談室" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">オンライン面談URL (任意)</label>
+            <input type="text" id="modal-add-teacher-url" placeholder="https://meet.google.com/..." class="w-full border border-slate-300 rounded-lg p-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+      `;
+      modalFooter.innerHTML = `
+        <button onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50">キャンセル</button>
+        <button onclick="saveNewTeacher()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs">学級・教員を追加</button>
+      `;
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function saveNewTeacher() {
+      const cls = document.getElementById('modal-add-teacher-class').value.trim();
+      const name = document.getElementById('modal-add-teacher-name').value.trim();
+      const room = document.getElementById('modal-add-teacher-room').value.trim() || `${cls} 教室`;
+      const url = document.getElementById('modal-add-teacher-url').value.trim();
+
+      if (!cls || !name) {
+        showToast('学級名と教員氏名は必須です。', 'error');
+        return;
+      }
+
+      if (STATE.teachers.some(t => t.class === cls)) {
+        showToast(`学級「${cls}」は既に登録されています。`, 'error');
+        return;
+      }
+
+      const newId = `t-${Date.now()}`;
+      STATE.teachers.push({
+        id: newId,
+        class: cls,
+        name: name,
+        room: room,
+        onlineUrl: url
+      });
+
+      closeModal();
+      renderTeachersTable();
+      updateClassSelectOptions();
+      renderRosterTable();
+      showToast(`「${cls}（${name}）」を追加しました！`, 'success');
+    }
+
+    function openBatchClassSetupModal() {
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      const modalFooter = document.getElementById('modal-footer');
+
+      modalTitle.innerText = '学級の一括セットアップ';
+      modalBody.innerHTML = `
+        <div class="space-y-3 text-xs">
+          <p class="text-slate-600">
+            学年とクラス数を指定して、学級を一括で追加・作成できます。
+          </p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">対象学年</label>
+              <select id="batch-grade-select" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white">
+                <option value="1">1年生</option>
+                <option value="2">2年生</option>
+                <option value="3">3年生</option>
+                <option value="4">4年生</option>
+                <option value="5">5年生</option>
+                <option value="6">6年生</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">学級数 (クラス数)</label>
+              <input type="number" id="batch-class-count" value="3" min="1" max="10" class="w-full border border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">表記スタイル</label>
+            <select id="batch-style-select" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white">
+              <option value="num">1組, 2組, 3組...</option>
+              <option value="alpha">A組, B組, C組...</option>
+            </select>
+          </div>
+        </div>
+      `;
+      modalFooter.innerHTML = `
+        <button onclick="closeModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50">キャンセル</button>
+        <button onclick="executeBatchClassSetup()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs">一括生成して追加</button>
+      `;
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function executeBatchClassSetup() {
+      const grade = document.getElementById('batch-grade-select').value;
+      const count = parseInt(document.getElementById('batch-class-count').value, 10) || 1;
+      const style = document.getElementById('batch-style-select').value;
+
+      let added = 0;
+      for (let i = 1; i <= count; i++) {
+        const classLabel = style === 'alpha' 
+          ? `${grade}年${String.fromCharCode(64 + i)}組` 
+          : `${grade}年${i}組`;
+
+        if (!STATE.teachers.some(t => t.class === classLabel)) {
+          STATE.teachers.push({
+            id: `t-${Date.now()}-${i}`,
+            class: classLabel,
+            name: `担任未定 (${classLabel})`,
+            room: `${classLabel} 教室`,
+            onlineUrl: ''
+          });
+          added++;
+        }
+      }
+
+      closeModal();
+      renderTeachersTable();
+      updateClassSelectOptions();
+      renderRosterTable();
+      showToast(`${added}クラスの学級を追加しました！`, 'success');
+    }
+
+    function renderConfiguredDatesList() {
+      const container = document.getElementById('setting-dates-list');
+      if (!container) return;
+
+      container.innerHTML = STATE.configuredDates.map((dateStr, idx) => `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-indigo-200 text-indigo-900 rounded-lg text-xs font-semibold shadow-2xs">
+          <span>📅 ${dateStr}</span>
+          <button type="button" onclick="removeEventDate(${idx})" class="text-slate-400 hover:text-rose-600 transition font-bold text-xs">✕</button>
+        </span>
+      `).join('');
+
+      updateSettingsPreview();
+    }
+
+    function addEventDateFromInput() {
+      const input = document.getElementById('input-new-event-date');
+      const val = input.value;
+      if (!val) {
+        showToast('追加する日付を選択してください。', 'error');
+        return;
+      }
+      if (STATE.configuredDates.includes(val)) {
+        showToast('その日付は既に追加されています。', 'error');
+        return;
+      }
+
+      STATE.configuredDates.push(val);
+      STATE.configuredDates.sort();
+      input.value = '';
+      renderConfiguredDatesList();
+      showToast(`実施日 ${val} を追加しました。`, 'success');
+    }
+
+    function removeEventDate(idx) {
+      if (STATE.configuredDates.length <= 1) {
+        showToast('最低1日の実施日が必要です。', 'error');
+        return;
+      }
+      const removed = STATE.configuredDates.splice(idx, 1);
+      renderConfiguredDatesList();
+      showToast(`実施日 ${removed[0]} を削除しました。`, 'info');
+    }
+
+    function updateSettingsPreview() {
+      const previewEl = document.getElementById('settings-preview-text');
+      if (!previewEl) return;
+
+      const slotDuration = parseInt(document.getElementById('setting-slot-duration')?.value, 10) || 15;
+      const breakDuration = parseInt(document.getElementById('setting-break-duration')?.value, 10) || 0;
+      const startTimeStr = document.getElementById('setting-start-time')?.value || '13:30';
+      const endTimeStr = document.getElementById('setting-end-time')?.value || '16:10';
+
+      const [startH, startM] = startTimeStr.split(':').map(Number);
+      const [endH, endM] = endTimeStr.split(':').map(Number);
+      const startMin = startH * 60 + startM;
+      const endMin = endH * 60 + endM;
+
+      if (startMin >= endMin) {
+        previewEl.innerText = '開始時刻が終了時刻以降になっています。';
+        return;
+      }
+
+      let slotsPerDay = 0;
+      let cur = startMin;
+      while (cur + slotDuration <= endMin) {
+        slotsPerDay++;
+        cur += slotDuration + breakDuration;
+      }
+
+      const daysCount = STATE.configuredDates.length;
+      const teachersCount = STATE.teachers.length;
+      const totalSlots = slotsPerDay * daysCount * teachersCount;
+
+      previewEl.innerText = `1日あたり ${slotsPerDay} 枠 × 実施 ${daysCount} 日間 × 教員 ${teachersCount} 名 ＝ 合計 ${totalSlots} 面談枠`;
+    }
+
+    function regenerateSlots() {
+      const slotDuration = parseInt(document.getElementById('setting-slot-duration').value, 10) || 15;
+      const breakDuration = parseInt(document.getElementById('setting-break-duration').value, 10) || 0;
+      const startTimeStr = document.getElementById('setting-start-time').value || '13:30';
+      const endTimeStr = document.getElementById('setting-end-time').value || '16:10';
+
+      const dates = STATE.configuredDates;
+      if (!dates || dates.length === 0) {
+        showToast('少なくとも1日以上の実施日を追加してください。', 'error');
+        return;
+      }
+
+      const [startH, startM] = startTimeStr.split(':').map(Number);
+      const [endH, endM] = endTimeStr.split(':').map(Number);
+      const startMin = startH * 60 + startM;
+      const endMin = endH * 60 + endM;
+
+      if (startMin >= endMin) {
+        showToast('開始時刻は終了時刻より前にしてください。', 'error');
+        return;
+      }
+
+      const timeFrames = [];
+      let cur = startMin;
+      while (cur + slotDuration <= endMin) {
+        const sH = String(Math.floor(cur / 60)).padStart(2, '0');
+        const sM = String(cur % 60).padStart(2, '0');
+        const nextMin = cur + slotDuration;
+        const eH = String(Math.floor(nextMin / 60)).padStart(2, '0');
+        const eM = String(nextMin % 60).padStart(2, '0');
+
+        timeFrames.push({ start: `${sH}:${sM}`, end: `${eH}:${eM}` });
+        cur = nextMin + breakDuration;
+      }
+
+      const newSlots = [];
+      let counter = 1;
+      dates.forEach(d => {
+        STATE.teachers.forEach(t => {
+          timeFrames.forEach(tf => {
+            newSlots.push({
+              id: `slot-${counter++}`,
+              date: d,
+              startTime: tf.start,
+              endTime: tf.end,
+              teacherId: t.id,
+              teacherName: t.name,
+              room: t.room,
+              isBlocked: false,
+              blockReason: ''
+            });
+          });
+        });
+      });
+
+      STATE.slots = newSlots;
+      STATE.selectedDate = dates[0];
+      STATE.assignment = {};
+      STATE.reverseAssignment = {};
+      STATE.unassignedStudents = [];
+      STATE.preferences = {};
+
+      renderDashboard();
+      renderTeachersTable();
+      updateSettingsPreview();
+      showToast(`面談枠を一括生成しました（合計 ${newSlots.length} 枠）`, 'success');
+    }
+
+    // ==========================================
+    // 保護者画面関連
+    // ==========================================
+    function verifyParentLogin() {
+      const gradeClass = document.getElementById('parent-login-class').value;
+      const pin = document.getElementById('parent-login-pin').value.trim();
+
+      if (!pin) {
+        showToast('個別認証PIN（暗証番号）を入力してください。', 'error');
+        return;
+      }
+
+      let student = STATE.students.find(s => s.gradeClass === gradeClass && s.pin === pin);
+      if (!student) {
+        const pinMatched = STATE.students.filter(s => s.pin === pin);
+        if (pinMatched.length === 1) {
+          student = pinMatched[0];
+        }
+      }
+
+      if (!student) {
+        showToast('学級または暗証番号(PIN)が一致しません。配布されたお手紙をご確認ください。', 'error');
+        return;
+      }
+
+      STATE.authenticatedStudentId = student.id;
+      showToast(`${student.name} 様として認証されました。`, 'success');
+      showParentForm(student);
+    }
+
+    function showParentForm(student) {
+      document.getElementById('parent-auth-container').classList.add('hidden');
+      document.getElementById('parent-form-container').classList.remove('hidden');
+
+      document.getElementById('parent-badge-class').innerText = `${student.gradeClass} ${student.studentNumber ? student.studentNumber + '番' : ''}`;
+      document.getElementById('parent-label-student').innerText = `${student.name} さんの保護者 様`;
+
+      const teacher = STATE.teachers.find(t => t.class === student.gradeClass);
+      if (teacher) {
+        document.getElementById('parent-label-teacher').innerText = `担当担任: ${teacher.name} | 面談会場: ${teacher.room}`;
+      } else {
+        document.getElementById('parent-label-teacher').innerText = `学級: ${student.gradeClass}`;
+      }
+
+      const sibBanner = document.getElementById('parent-sibling-banner');
+      if (student.siblingGroupId && STATE.siblingGroups[student.siblingGroupId]) {
+        sibBanner.classList.remove('hidden');
+        const grp = STATE.siblingGroups[student.siblingGroupId];
+        const otherId = grp.members.find(id => id !== student.id);
+        const otherStudent = STATE.students.find(s => s.id === otherId);
+        document.getElementById('sibling-names-hint').innerText = otherStudent ? `${otherStudent.name} (${otherStudent.gradeClass})` : '兄弟姉妹';
+      } else {
+        sibBanner.classList.add('hidden');
+      }
+
+      renderParentSlotsUI(student);
+    }
+
+    function renderParentSlotsUI(student) {
+      const pref = STATE.preferences[student.id] || { desiredRanks: {}, ngSlots: new Set(), consecutiveSiblingRequested: true };
+      const teacher = STATE.teachers.find(t => t.class === student.gradeClass);
+      const relevantSlots = teacher ? STATE.slots.filter(s => s.teacherId === teacher.id && !s.isBlocked) : STATE.slots.filter(s => !s.isBlocked);
+
+      const rank1SlotId = Object.keys(pref.desiredRanks || {}).find(id => pref.desiredRanks[id] === 1);
+      const rank2SlotId = Object.keys(pref.desiredRanks || {}).find(id => pref.desiredRanks[id] === 2);
+      const rank3SlotId = Object.keys(pref.desiredRanks || {}).find(id => pref.desiredRanks[id] === 3);
+
+      const s1 = rank1SlotId ? STATE.slots.find(s => s.id === rank1SlotId) : null;
+      const s2 = rank2SlotId ? STATE.slots.find(s => s.id === rank2SlotId) : null;
+      const s3 = rank3SlotId ? STATE.slots.find(s => s.id === rank3SlotId) : null;
+
+      document.getElementById('summary-rank-1').innerText = s1 ? `${s1.date} ${s1.startTime}-${s1.endTime}` : '未選択';
+      document.getElementById('summary-rank-2').innerText = s2 ? `${s2.date} ${s2.startTime}-${s2.endTime}` : '未選択';
+      document.getElementById('summary-rank-3').innerText = s3 ? `${s3.date} ${s3.startTime}-${s3.endTime}` : '未選択';
+
+      const ngContainer = document.getElementById('summary-ng-container');
+      const ngList = document.getElementById('summary-ng-list');
+      if (pref.ngSlots && pref.ngSlots.size > 0) {
+        ngContainer.classList.remove('hidden');
+        const ngSlotStrs = Array.from(pref.ngSlots).map(id => {
+          const slot = STATE.slots.find(s => s.id === id);
+          return slot ? `${slot.date.slice(5)} ${slot.startTime}` : '';
+        }).filter(Boolean);
+        ngList.innerText = ngSlotStrs.join(', ');
+      } else {
+        ngContainer.classList.add('hidden');
+      }
+
+      const container = document.getElementById('parent-slot-options');
+
+      if (relevantSlots.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 text-center text-slate-500 bg-slate-50 border border-slate-200 rounded-xl">
+            <p class="font-bold text-slate-700 text-xs sm:text-sm">現在選択可能な面談枠の受付準備中です。</p>
+            <p class="text-[11px] text-slate-400 mt-1">※日程アンケートの開始まで今しばらくお待ちいただくか、担任までお問い合わせください。</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = relevantSlots.map(slot => {
+        const currentRank = pref.desiredRanks ? pref.desiredRanks[slot.id] : null;
+        const isNG = pref.ngSlots && pref.ngSlots.has(slot.id);
+
+        let borderHighlight = 'border-slate-200';
+        if (currentRank === 1) borderHighlight = 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/20';
+        else if (currentRank === 2) borderHighlight = 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/20';
+        else if (currentRank === 3) borderHighlight = 'border-sky-500 ring-1 ring-sky-500 bg-sky-50/20';
+        else if (isNG) borderHighlight = 'border-rose-400 bg-rose-50/30';
+
+        return `
+          <div class="bg-white rounded-xl p-3 border ${borderHighlight} flex items-center justify-between gap-3 shadow-2xs transition">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-bold text-indigo-900">${slot.date}</span>
+                <span class="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-medium">担任: ${slot.teacherName}</span>
+              </div>
+              <div class="text-sm font-bold text-slate-800 font-mono mt-0.5">${slot.startTime} - ${slot.endTime}</div>
+              <div class="text-[10px] text-slate-400">場所: ${slot.room}</div>
+            </div>
+
+            <div class="flex items-center gap-1">
+              ${[1, 2, 3].map(rank => {
+                const isSelected = currentRank === rank;
+                const activeClass = rank === 1 ? 'bg-emerald-600 text-white shadow-xs' : (rank === 2 ? 'bg-blue-600 text-white shadow-xs' : 'bg-sky-600 text-white shadow-xs');
+                return `
+                  <button type="button" onclick="setParentChoice('${student.id}', '${slot.id}', ${rank})"
+                    class="w-10 h-8 text-xs font-bold rounded-lg transition ${isSelected ? activeClass : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                    第${rank}
+                  </button>
+                `;
+              }).join('')}
+              <button type="button" onclick="setParentChoice('${student.id}', '${slot.id}', -1)"
+                class="w-9 h-8 text-xs font-bold rounded-lg transition ${isNG ? 'bg-rose-600 text-white shadow-xs' : 'bg-slate-100 text-rose-500 hover:bg-rose-50'}">
+                NG
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const assignedSlotId = STATE.reverseAssignment[student.id];
+      const confirmedCard = document.getElementById('parent-confirmed-card');
+      if (assignedSlotId) {
+        const slot = STATE.slots.find(s => s.id === assignedSlotId);
+        if (slot) {
+          confirmedCard.classList.remove('hidden');
+          const rank = pref && pref.desiredRanks ? pref.desiredRanks[slot.id] : null;
+          const rankNote = rank ? `（第${rank}希望）` : '（希望外での調整）';
+          document.getElementById('confirmed-time-str').innerText = `${slot.date} ${slot.startTime} 〜 ${slot.endTime} ${rankNote}`;
+          document.getElementById('confirmed-place-str').innerText = `場所: ${slot.room} (担当: ${slot.teacherName})`;
+        }
+      } else {
+        confirmedCard.classList.add('hidden');
+      }
+    }
+
+    function setParentChoice(studentId, slotId, rank) {
+      if (!STATE.preferences[studentId]) {
+        STATE.preferences[studentId] = { desiredRanks: {}, ngSlots: new Set(), consecutiveSiblingRequested: true };
+      }
+      const pref = STATE.preferences[studentId];
+      pref.ngSlots = pref.ngSlots || new Set();
+
+      if (rank === -1) {
+        delete pref.desiredRanks[slotId];
+        if (pref.ngSlots.has(slotId)) pref.ngSlots.delete(slotId);
+        else pref.ngSlots.add(slotId);
+      } else {
+        pref.ngSlots.delete(slotId);
+        if (pref.desiredRanks[slotId] === rank) {
+          delete pref.desiredRanks[slotId];
+        } else {
+          for (const [id, r] of Object.entries(pref.desiredRanks)) {
+            if (r === rank) delete pref.desiredRanks[id];
+          }
+          pref.desiredRanks[slotId] = rank;
+        }
+      }
+      const student = STATE.students.find(s => s.id === studentId);
+      renderParentSlotsUI(student);
+    }
+
+    function saveParentPreferences() {
+      if (!STATE.authenticatedStudentId) return;
+
+      const submitBtn = document.getElementById('btn-parent-submit-pref');
+      const submitIcon = document.getElementById('parent-submit-icon');
+      const submitText = document.getElementById('parent-submit-text');
+
+      if (submitBtn) {
+        submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        submitBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+      }
+      if (submitIcon) submitIcon.innerText = '✓';
+      if (submitText) submitText.innerText = '希望を送信しました！';
+
+      const pref = STATE.preferences[STATE.authenticatedStudentId] || { desiredRanks: {}, ngSlots: new Set() };
+      pref.consecutiveSiblingRequested = document.getElementById('pref-sibling-consecutive').checked;
+      STATE.preferences[STATE.authenticatedStudentId] = pref;
+
+      showToast('希望日程アンケートを提出・更新しました！', 'success');
+
+      setTimeout(() => {
+        if (submitBtn) {
+          submitBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+          submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        }
+        if (submitIcon) submitIcon.innerText = '📨';
+        if (submitText) submitText.innerText = 'この内容で希望を提出・更新する';
+      }, 2500);
+    }
+
+    function logoutParent() {
+      STATE.authenticatedStudentId = null;
+      document.getElementById('parent-form-container').classList.add('hidden');
+      document.getElementById('parent-auth-container').classList.remove('hidden');
+      const pinInput = document.getElementById('parent-login-pin');
+      if (pinInput) pinInput.value = '';
+    }
+
+    // ==========================================
+    // 教員認証・モーダル関連
+    // ==========================================
+    function handleAuthButtonClick() {
+      if (STATE.isTeacherAuthenticated) {
+        if (STATE.currentView === 'parent-portal') {
+          switchView('teacher-dashboard');
+        } else {
+          STATE.isTeacherAuthenticated = false;
+          updateAuthUIState();
+          showToast('教員ログアウトしました。保護者画面に切り替えます。', 'info');
+          switchView('parent-portal');
+        }
+      } else {
+        openAuthModal('teacher-dashboard');
+      }
+    }
+
+    let pendingTargetView = 'teacher-dashboard';
+    function openAuthModal(targetView = 'teacher-dashboard') {
+      pendingTargetView = targetView;
+      const modal = document.getElementById('auth-modal');
+      const input = document.getElementById('teacher-passcode-input');
+      input.value = '';
+      modal.classList.remove('hidden');
+      setTimeout(() => input.focus(), 100);
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+    }
+
+    function verifyTeacherPasscode() {
+      const input = document.getElementById('teacher-passcode-input');
+      if (input.value.trim() === STATE.teacherPasscode) {
+        STATE.isTeacherAuthenticated = true;
+        closeAuthModal();
+        updateAuthUIState();
+        showToast('教員認証に成功しました。管理メニューを有効化しました。', 'success');
+        switchView(pendingTargetView);
+      } else {
+        showToast('パスコードが正しくありません。再度お試しください。', 'error');
+        input.focus();
+      }
+    }
+
+    function updateAuthUIState() {
+      const teacherGroup = document.getElementById('teacher-nav-group');
+      const authBtnIcon = document.getElementById('auth-btn-icon');
+      const authBtnLabel = document.getElementById('auth-btn-label');
+      const authBtn = document.getElementById('btn-auth-toggle');
+      const parentSwitchBtn = document.getElementById('btn-parent-switch');
+
+      if (STATE.currentView === 'parent-portal') {
+        if (teacherGroup) teacherGroup.classList.add('hidden');
+        if (parentSwitchBtn) parentSwitchBtn.classList.add('hidden');
+        if (STATE.isTeacherAuthenticated) {
+          if (authBtnIcon) authBtnIcon.innerText = '🔓';
+          if (authBtnLabel) authBtnLabel.innerText = '管理画面へ';
+          if (authBtn) authBtn.className = 'px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-white border border-indigo-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs';
+        } else {
+          if (authBtnIcon) authBtnIcon.innerText = '🔒';
+          if (authBtnLabel) authBtnLabel.innerText = '教職員はこちら';
+          if (authBtn) authBtn.className = 'px-2.5 py-1.5 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-300 hover:text-white border border-indigo-800/80 rounded-xl text-xs font-medium flex items-center gap-1.5 transition';
+        }
+      } else {
+        if (teacherGroup) teacherGroup.classList.remove('hidden');
+        if (parentSwitchBtn) parentSwitchBtn.classList.remove('hidden');
+        if (authBtnIcon) authBtnIcon.innerText = '🚪';
+        if (authBtnLabel) authBtnLabel.innerText = 'ログアウト';
+        if (authBtn) authBtn.className = 'px-3 py-1.5 bg-rose-900 hover:bg-rose-800 text-rose-100 border border-rose-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition';
+      }
+    }
+
+    function openDirectPasscodeResetModal() {
+      closeAuthModal();
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      const modalFooter = document.getElementById('modal-footer');
+
+      modalTitle.innerText = '教員パスコードの直接リセット';
+      modalBody.innerHTML = `
+        <div class="space-y-3 text-xs">
+          <p class="text-slate-600">新しい教員用パスコードを設定してください。</p>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">新しいパスコード</label>
+            <input type="password" id="modal-direct-passcode" placeholder="例: 1234" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-mono">
+          </div>
+        </div>
+      `;
+      modalFooter.innerHTML = `
+        <button onclick="closeModal()" class="px-4 py-2 border rounded-lg text-xs">キャンセル</button>
+        <button onclick="applyDirectPasscodeReset()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold">更新する</button>
+      `;
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function applyDirectPasscodeReset() {
+      const p = document.getElementById('modal-direct-passcode').value.trim();
+      if (!p) {
+        showToast('パスコードを入力してください。', 'error');
+        return;
+      }
+      STATE.teacherPasscode = p;
+      closeModal();
+      showToast('教員パスコードを更新しました。新しいコードでログインしてください。', 'success');
+      openAuthModal(pendingTargetView);
+    }
+
+    // ==========================================
+    // 決定日程一覧機能
+    // ==========================================
+    function renderConfirmedTable() {
+      const classSelect = document.getElementById('confirmed-filter-class');
+      const dateSelect = document.getElementById('confirmed-filter-date');
+      const currentClassVal = classSelect.value || 'ALL';
+      const currentDateVal = dateSelect.value || 'ALL';
+
+      const uniqueClasses = getRegisteredClasses();
+      classSelect.innerHTML = '<option value="ALL">全学級・全クラス</option>' + 
+        uniqueClasses.map(cls => `<option value="${cls}" ${cls === currentClassVal ? 'selected' : ''}>${cls}</option>`).join('');
+
+      const uniqueDates = [...new Set(STATE.slots.map(s => s.date).filter(Boolean))].sort();
+      dateSelect.innerHTML = '<option value="ALL">全日程</option>' +
+        uniqueDates.map(d => `<option value="${d}" ${d === currentDateVal ? 'selected' : ''}>${d}</option>`).join('');
+
+      const tbody = document.getElementById('confirmed-table-body');
+      const badgeRatio = document.getElementById('confirmed-badge-ratio');
+      const sortOrder = document.getElementById('confirmed-sort-order')?.value || 'time_asc';
+      const keyword = (document.getElementById('confirmed-search-keyword')?.value || '').trim().toLowerCase();
+
+      const confirmedList = [];
+      for (const [slotId, studentId] of Object.entries(STATE.assignment)) {
+        const slot = STATE.slots.find(s => s.id === slotId);
+        const student = STATE.students.find(s => s.id === studentId);
+        if (slot && student) {
+          confirmedList.push({ slot, student });
+        }
+      }
+
+      if (badgeRatio) {
+        badgeRatio.innerText = `確定: ${confirmedList.length} / ${STATE.students.length} 名`;
+      }
+
+      const filtered = confirmedList.filter(({ slot, student }) => {
+        if (classSelect.value !== 'ALL' && student.gradeClass !== classSelect.value) return false;
+        if (dateSelect.value !== 'ALL' && slot.date !== dateSelect.value) return false;
+        if (keyword) {
+          const matchName = student.name.toLowerCase().includes(keyword);
+          const matchClass = student.gradeClass.toLowerCase().includes(keyword);
+          if (!matchName && !matchClass) return false;
+        }
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        if (sortOrder === 'time_asc') return `${a.slot.date} ${a.slot.startTime}`.localeCompare(`${b.slot.date} ${b.slot.startTime}`);
+        if (sortOrder === 'time_desc') return `${b.slot.date} ${b.slot.startTime}`.localeCompare(`${a.slot.date} ${a.slot.startTime}`);
+        if (sortOrder === 'class_num') {
+          const cmpClass = a.student.gradeClass.localeCompare(b.student.gradeClass);
+          if (cmpClass !== 0) return cmpClass;
+          return (a.student.studentNumber || 0) - (b.student.studentNumber || 0);
+        }
+        return a.student.name.localeCompare(b.student.name, 'ja');
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr><td colspan="6" class="px-5 py-8 text-center text-slate-400 text-xs">確定した面談予定がありません。</td></tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(({ slot, student }) => {
+        const pref = STATE.preferences[student.id];
+        let rankBadge = '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px]">希望外調整</span>';
+        if (pref && pref.desiredRanks) {
+          const rank = pref.desiredRanks[slot.id];
+          if (rank === 1) rankBadge = '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded">第1希望</span>';
+          else if (rank === 2) rankBadge = '<span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[11px] font-bold rounded">第2希望</span>';
+          else if (rank === 3) rankBadge = '<span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[11px] font-bold rounded">第3希望</span>';
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition text-xs">
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="font-bold text-slate-900">${slot.date}</div>
+              <div class="font-mono text-indigo-700 font-semibold">${slot.startTime} 〜 ${slot.endTime}</div>
+            </td>
+            <td class="px-4 py-3 font-medium text-slate-700">
+              <span class="px-2 py-0.5 bg-slate-100 rounded font-semibold">${student.gradeClass}</span>
+              <span class="text-slate-500 ml-1">${student.studentNumber ? student.studentNumber + '番' : ''}</span>
+            </td>
+            <td class="px-4 py-3 font-bold text-slate-900 text-sm">${student.name}</td>
+            <td class="px-4 py-3 text-slate-800">
+              <div class="font-semibold text-slate-900">${slot.teacherName}</div>
+              <div class="text-[11px] text-slate-500">${slot.room}</div>
+            </td>
+            <td class="px-4 py-3">${rankBadge}</td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              <button onclick="openSlotActionModal('${slot.id}')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold rounded-lg text-xs transition shadow-2xs">
+                変更
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function exportConfirmedListCSV() {
+      let csv = "\uFEFF面談日,開始時刻,終了時刻,学年クラス,出席番号,生徒氏名,担当教員,面談会場,希望順位\n";
+      for (const [slotId, studentId] of Object.entries(STATE.assignment)) {
+        const slot = STATE.slots.find(s => s.id === slotId);
+        const student = STATE.students.find(s => s.id === studentId);
+        if (slot && student) {
+          const pref = STATE.preferences[student.id];
+          const rank = pref && pref.desiredRanks ? pref.desiredRanks[slot.id] : null;
+          csv += [slot.date, slot.startTime, slot.endTime, student.gradeClass, student.studentNumber || '', student.name, slot.teacherName, slot.room, rank ? `第${rank}希望` : '希望外調整'].map(v => `"${v}"`).join(',') + "\n";
+        }
+      }
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `個別面談_決定日程一覧_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      showToast('決定日程一覧CSVをダウンロードしました。', 'success');
+    }
+
+    // ==========================================
+    // 案内文ジェネレーター機能（紙面回答キリトリ票付き）
+    // ==========================================
+    function handleLetterTypeChange() {
+      const selected = document.querySelector('input[name="letter_template_type"]:checked');
+      if (selected) STATE.letterType = selected.value;
+
+      ['survey', 'individual_pin', 'app_mail'].forEach(t => {
+        const el = document.getElementById(`label-letter-type-${t.replace('_', '-')}`);
+        if (el) {
+          if (t === STATE.letterType) el.className = 'block p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/40 cursor-pointer transition';
+          else el.className = 'block p-3 rounded-xl border border-slate-200 cursor-pointer transition hover:bg-slate-50';
+        }
+      });
+      renderLetterPreview();
+    }
+
+    function toggleLetterCustomEdit() {
+      STATE.isCustomLetterEditing = !STATE.isCustomLetterEditing;
+      const btn = document.getElementById('btn-toggle-letter-edit');
+      if (btn) btn.innerText = STATE.isCustomLetterEditing ? '👁️ プレビュー表示に戻す' : '✏️ 本文を直接編集';
+      renderLetterPreview();
+    }
+
+    function renderLetterPreview() {
+      const container = document.getElementById('letter-display-box');
+      if (!container) return;
+
+      const senderText = document.getElementById('letter-input-sender')?.value || '校長 〇〇 〇〇 / 学年主任・担任一同';
+      const webUrl = document.getElementById('letter-input-url')?.value || window.location.href.split('#')[0];
+      const periodStr = document.getElementById('letter-input-period')?.value || '令和8年10月15日(木) 〜 10月16日(金)';
+      const deadlineVal = STATE.eventMeta.deadline ? STATE.eventMeta.deadline.replace('T', ' ') : '令和8年10月10日 23:59';
+      const schoolName = STATE.eventMeta.schoolName;
+      const eventTitle = STATE.eventMeta.title;
+      const todayStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      if (STATE.isCustomLetterEditing) {
+        container.innerHTML = `
+          <textarea id="letter-custom-textarea" rows="20" class="w-full border border-slate-300 rounded-xl p-3 text-xs font-mono leading-relaxed" oninput="STATE.customLetterText = this.value">${STATE.customLetterText || generateSurveyPlainText(senderText, webUrl, periodStr, todayStr, deadlineVal)}</textarea>
+        `;
+        return;
+      }
+
+      if (STATE.letterType === 'survey') {
+        container.innerHTML = `
+          <div class="border border-slate-300 p-6 rounded-xl bg-white space-y-4">
+            <!-- お便り上部ヘッダー -->
+            <div class="flex justify-between items-start text-slate-600 text-xs border-b border-slate-200 pb-2">
+              <div>保護者の皆様へ</div>
+              <div class="text-right">
+                <div>${todayStr}</div>
+                <div class="font-bold text-slate-800">${schoolName}</div>
+                <div>${senderText}</div>
+              </div>
+            </div>
+
+            <!-- 表題 -->
+            <div class="text-center my-2">
+              <h3 class="text-base sm:text-lg font-bold text-slate-900">${eventTitle} の実施および希望調査について</h3>
+            </div>
+
+            <p class="text-xs leading-relaxed text-slate-700">
+              秋冷の候、保護者の皆様におかれましては益々ご清祥のこととお慶び申し上げます。日頃より本校の教育活動にご理解とご協力を賜り、厚く御礼申し上げます。<br>
+              さて、学校生活や学習の状況、今後の目標について直接お話しし、お子様の健やかな成長を共に支えるため、下記のとおり個別面談を実施いたします。<br>
+              つきましては、ご多忙の折誠に恐縮ですが、<strong>Webフォーム</strong>または下部の<strong>紙面回答票</strong>のいずれかにてご都合のよい日時をお知らせください。
+            </p>
+
+            <!-- 実施要項 -->
+            <div class="border border-slate-300 p-3 rounded-lg bg-slate-50/70 text-xs space-y-1.5 text-slate-800">
+              <div class="font-bold text-center text-slate-900 mb-1">【 記 】</div>
+              <p><strong>１．実施期間:</strong> ${periodStr}（各日 13:30〜16:30 / 1家庭 約15分）</p>
+              <p><strong>２．面談会場:</strong> 各学級の教室（または指定相談室）</p>
+              <p><strong>３．Web回答URL:</strong> <span class="font-mono text-indigo-700 font-semibold">${webUrl}</span></p>
+              <p><strong>４．提出締切日時:</strong> <span class="font-bold text-rose-700">${deadlineVal} まで</span></p>
+              <p class="text-[11px] text-slate-500">※スマートフォン等でWeb回答される場合は、別紙または本紙記載の「個別認証PIN」をご利用ください。</p>
+            </div>
+
+            <!-- キリトリ線 -->
+            <div class="pt-2">
+              <div class="relative flex py-2 items-center">
+                <div class="flex-grow border-t-2 border-dashed border-slate-400"></div>
+                <span class="flex-shrink mx-3 text-slate-500 text-[11px] font-bold flex items-center gap-1">
+                  <span>✁</span> キ リ ト リ 線（※紙面で提出される方のみ切り取って担任へご提出ください）
+                </span>
+                <div class="flex-grow border-t-2 border-dashed border-slate-400"></div>
+              </div>
+            </div>
+
+            <!-- 紙面回答票 -->
+            <div class="border-2 border-slate-800 rounded-xl p-4 bg-slate-50/50 space-y-3">
+              <div class="flex justify-between items-center border-b border-slate-300 pb-1.5">
+                <span class="font-bold text-slate-900 text-xs sm:text-sm">【紙面用】${eventTitle} 希望日程回答票</span>
+                <span class="text-[11px] text-slate-600">提出日: 令和8年 ___月 ___日</span>
+              </div>
+
+              <!-- 生徒情報・保護者署名欄 -->
+              <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="border border-slate-300 p-2 bg-white rounded">
+                  <div class="text-[10px] text-slate-500">学年・学級 / 出席番号</div>
+                  <div class="font-bold mt-0.5 text-slate-800">______ 年 ______ 組 （ 番 ）</div>
+                </div>
+                <div class="border border-slate-300 p-2 bg-white rounded">
+                  <div class="text-[10px] text-slate-500">生徒氏名</div>
+                  <div class="font-bold mt-0.5 text-slate-800 text-sm">＿＿＿＿＿＿＿＿＿＿＿＿</div>
+                </div>
+              </div>
+
+              <!-- 希望時間帯記入欄 -->
+              <div class="text-xs space-y-1.5 bg-white p-3 rounded border border-slate-300">
+                <div class="font-bold text-slate-800 text-[11px]">■ ご都合のよい日時（第1〜第3希望をご記入ください）</div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] pt-1">
+                  <div class="p-2 border border-slate-200 rounded bg-slate-50">
+                    <span class="font-bold text-emerald-800">【第1希望】</span>
+                    <div class="mt-1 text-slate-700">___月___日( ) ___時___分頃〜</div>
+                  </div>
+                  <div class="p-2 border border-slate-200 rounded bg-slate-50">
+                    <span class="font-bold text-blue-800">【第2希望】</span>
+                    <div class="mt-1 text-slate-700">___月___日( ) ___時___分頃〜</div>
+                  </div>
+                  <div class="p-2 border border-slate-200 rounded bg-slate-50">
+                    <span class="font-bold text-sky-800">【第3希望】</span>
+                    <div class="mt-1 text-slate-700">___月___日( ) ___時___分頃〜</div>
+                  </div>
+                </div>
+                <div class="pt-1 text-[11px]">
+                  <span class="font-bold text-rose-700">【ご都合の悪い時間帯 (NG)】:</span>
+                  <span class="text-slate-600 underline ml-1">＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿</span>
+                </div>
+              </div>
+
+              <!-- 兄弟姉妹の有無および備考欄 -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div class="border border-slate-300 p-2 bg-white rounded text-[11px] space-y-1">
+                  <div class="font-bold text-slate-800">■ 本校に兄弟姉妹が在籍している場合</div>
+                  <div class="text-slate-600">氏名: ＿＿＿＿＿＿（___年___組）</div>
+                  <div class="text-slate-600">連続・同日での面談を 【 希望する ／ どちらでもよい 】</div>
+                </div>
+                <div class="border border-slate-300 p-2 bg-white rounded text-[11px]">
+                  <div class="font-bold text-slate-800">■ 事前に伝えておきたい相談事項など（任意）</div>
+                  <div class="text-slate-400 mt-1 text-[10px]">（学校生活、学習、進路、友人関係など）</div>
+                </div>
+              </div>
+
+              <!-- 保護者サイン欄 -->
+              <div class="text-right text-xs pt-1">
+                <span class="text-slate-600">保護者氏名（自署）: ＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿ 印</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (STATE.letterType === 'individual_pin') {
+        container.innerHTML = STATE.students.map(stu => `
+          <div class="print-card-item border-2 border-indigo-900 rounded-xl p-5 mb-5 bg-white space-y-3">
+            <div class="flex justify-between items-start border-b border-slate-200 pb-2">
+              <div>
+                <span class="text-xs font-bold text-indigo-900">${schoolName}</span>
+                <h4 class="text-sm font-bold text-slate-900">${eventTitle} ログイン案内 ＆ 紙面回答票</h4>
+              </div>
+              <span class="px-2.5 py-0.5 bg-indigo-50 text-indigo-800 font-bold rounded-full text-xs">${stu.gradeClass} ${stu.studentNumber ? stu.studentNumber + '番' : ''}</span>
+            </div>
+
+            <div class="flex justify-between items-center text-xs">
+              <div class="font-bold text-slate-900 text-sm">${stu.name} さん 保護者 様</div>
+              <div class="text-slate-500">回答締切: ${deadlineVal}</div>
+            </div>
+
+            <!-- Web認証情報 -->
+            <div class="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-bold text-indigo-900">保護者様専用 認証PIN (暗証番号):</div>
+                <div class="text-[11px] text-indigo-700">回答ページ (${webUrl}) で入力してください</div>
+              </div>
+              <span class="font-mono text-2xl font-black text-indigo-950 px-3 py-1 bg-white rounded-lg border border-indigo-300">${stu.pin}</span>
+            </div>
+
+            <!-- キリトリ線 -->
+            <div class="relative flex py-1 items-center">
+              <div class="flex-grow border-t border-dashed border-slate-400"></div>
+              <span class="flex-shrink mx-2 text-slate-400 text-[10px]">✁ 紙面で回答される場合のみ切り取ってご提出ください ✁</span>
+              <div class="flex-grow border-t border-dashed border-slate-400"></div>
+            </div>
+
+            <!-- 生徒専用キリトリ回答票 -->
+            <div class="border border-slate-300 rounded-lg p-3 bg-slate-50 text-xs space-y-2">
+              <div class="flex justify-between items-center font-bold text-slate-800 text-[11px]">
+                <span>【紙面回答票】 ${stu.gradeClass} ${stu.studentNumber || ''}番: ${stu.name} さん</span>
+                <span>保護者印: _____</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-[10px]">
+                <div class="bg-white p-1.5 rounded border border-slate-200">
+                  <span class="font-bold text-emerald-800">第1希望:</span><br>___月___日 ___:___頃〜
+                </div>
+                <div class="bg-white p-1.5 rounded border border-slate-200">
+                  <span class="font-bold text-blue-800">第2希望:</span><br>___月___日 ___:___頃〜
+                </div>
+                <div class="bg-white p-1.5 rounded border border-slate-200">
+                  <span class="font-bold text-sky-800">第3希望:</span><br>___月___日 ___:___頃〜
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-600">
+                都合の悪い時間帯(NG): ＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = `
+          <textarea readonly rows="16" class="w-full border border-slate-300 rounded-xl p-3 text-xs font-mono leading-relaxed bg-slate-50 text-slate-800">${generateSurveyPlainText(senderText, webUrl, periodStr, todayStr, deadlineVal)}</textarea>
+        `;
+      }
+    }
+
+    function generateSurveyPlainText(senderText, webUrl, periodStr, todayStr, deadlineVal) {
+      return `【${STATE.eventMeta.schoolName}】${STATE.eventMeta.title} のご案内および希望調査\n\n` +
+        `保護者の皆様へ\n\n` +
+        `日頃より本校の教育活動にご理解とご協力を賜り、厚く御礼申し上げます。\n` +
+        `下記のとおり個別面談を実施いたします。Webフォームまたは配布プリントの「紙面回答票」にてご都合のよい日時をお知らせください。\n\n` +
+        `■ 実施期間: ${periodStr}\n` +
+        `■ 面談会場: 各教室\n` +
+        `■ Web回答URL: ${webUrl}\n` +
+        `■ 提出締切日時: ${deadlineVal}\n\n` +
+        `※スマートフォン等でのWeb回答には、配布された専用暗証番号(PIN)が必要です。\n` +
+        `※紙面での回答をご希望の方は、配布プリント下部の「希望日程回答票」にご記入の上、担任までご提出ください。\n\n` +
+        `--------------------------------------------------\n` +
+        `【紙面提出用フォーマット】\n` +
+        `学年・学級: ____年____組 (出席番号: ___番)\n` +
+        `生徒氏名: ＿＿＿＿＿＿＿＿＿＿＿＿＿＿\n` +
+        `保護者氏名: ＿＿＿＿＿＿＿＿＿＿＿＿＿＿ 印\n` +
+        `・第1希望: ___月___日 ___時___分頃〜\n` +
+        `・第2希望: ___月___日 ___時___分頃〜\n` +
+        `・第3希望: ___月___日 ___時___分頃〜\n` +
+        `・都合のつかない日時(NG): ＿＿＿＿＿＿＿＿＿＿\n` +
+        `・兄弟姉妹の連続希望: 【 希望する / どちらでもよい 】\n` +
+        `--------------------------------------------------\n` +
+        `${STATE.eventMeta.schoolName} / ${senderText}`;
+    }
+
+    function copyLetterTextToClipboard() {
+      const text = generateSurveyPlainText(
+        document.getElementById('letter-input-sender')?.value,
+        document.getElementById('letter-input-url')?.value,
+        document.getElementById('letter-input-period')?.value,
+        '',
+        STATE.eventMeta.deadline || '〇月〇日'
+      );
+      navigator.clipboard?.writeText ? navigator.clipboard.writeText(text) : alert('コピーしました');
+      showToast('紙面回答フォーマット付き文面をクリップボードにコピーしました！', 'success');
+    }
+
+    // ==========================================
+    // 万全の印刷 & 出力エンジン
+    // ==========================================
+    let currentPrintTarget = 'print-area';
+
+    function getFullPrintableDocumentHtml(title, bodyContent) {
+      return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #ffffff;
+      color: #0f172a;
+      padding: 20px;
+      margin: 0;
+    }
+    .print-card-item {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    .page-break {
+      page-break-after: always !important;
+      break-after: page !important;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      @page {
+        size: A4;
+        margin: 12mm 15mm;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+    <div>
+      <h2 class="font-bold text-indigo-950 text-sm">🖨️ 印刷プレビュー</h2>
+      <p class="text-xs text-indigo-700">自動で印刷ダイアログが開かない場合は、右の「今すぐ印刷する」ボタンをクリックしてください。</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="window.print()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md transition cursor-pointer">
+        🖨️ 今すぐ印刷する (Ctrl+P)
+      </button>
+      <button onclick="window.close()" class="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs shadow-xs transition cursor-pointer">
+        閉じる
+      </button>
+    </div>
+  </div>
+  <div class="max-w-4xl mx-auto">
+    ${bodyContent}
+  </div>
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        try {
+          window.print();
+        } catch(e) {
+          console.warn('Auto print suppressed:', e);
+        }
+      }, 350);
+    });
+  <\/script>
+</body>
+</html>`;
+    }
+
+    function getTargetContentHtml(targetType) {
+      if (targetType === 'letter') {
+        const letterBox = document.getElementById('letter-display-box');
+        return letterBox ? letterBox.innerHTML : '';
+      }
+      const printArea = document.getElementById('print-area');
+      return printArea ? printArea.innerHTML : '';
+    }
+
+    function triggerPrint(targetType = 'print-area') {
+      currentPrintTarget = targetType;
+      const title = STATE.eventMeta.title || '個別面談印刷シート';
+      const content = getTargetContentHtml(targetType);
+
+      if (!content.trim()) {
+        showToast('印刷する内容がありません。', 'error');
+        return;
+      }
+
+      const fullHtml = getFullPrintableDocumentHtml(title, content);
+
+      try {
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.open();
+          printWindow.document.write(fullHtml);
+          printWindow.document.close();
+          showToast('印刷用ウィンドウを開きました！印刷ダイアログをご確認ください。', 'success');
+          return;
+        }
+      } catch (err) {
+        console.warn('Direct window.open failed:', err);
+      }
+
+      try {
+        const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8;' });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.target = '_blank';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        showToast('印刷用タブを開きました！', 'success');
+        return;
+      } catch (err) {
+        console.warn('Blob URL open failed:', err);
+      }
+
+      openPrintAssistantDialog(targetType);
+      showToast('印刷アシスタントを起動しました。「HTML保存」または「印刷実行」をお選びください。', 'info');
+    }
+
+    function openPrintAssistantDialog(targetType = 'print-area') {
+      currentPrintTarget = targetType;
+      const content = getTargetContentHtml(targetType);
+      const previewContainer = document.getElementById('print-assistant-preview-content');
+      if (previewContainer) {
+        previewContainer.innerHTML = content;
+      }
+      document.getElementById('print-assistant-modal').classList.remove('hidden');
+    }
+
+    function closePrintAssistantModal() {
+      document.getElementById('print-assistant-modal').classList.add('hidden');
+    }
+
+    function executeBrowserPrintDirectly() {
+      try {
+        window.print();
+      } catch (err) {
+        showToast('ブラウザの制約により直接印刷が実行できません。「印刷用HTMLを保存」をお使いください。', 'error');
+      }
+    }
+
+    function downloadPrintHTML(targetType = 'print-area') {
+      const title = STATE.eventMeta.title || '個別面談日程表_印刷用';
+      const content = getTargetContentHtml(targetType);
+      const fullHtml = getFullPrintableDocumentHtml(title, content);
+
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${title}_${new Date().toISOString().slice(0, 10)}.html`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+      showToast('印刷用HTMLファイルをダウンロードしました！ダブルクリックで開いて即座に印刷できます。', 'success');
+    }
+
+    function downloadActivePrintHTML() {
+      downloadPrintHTML(currentPrintTarget);
+    }
+
+    function copyActivePrintTableToClipboard() {
+      const contentEl = document.getElementById('print-assistant-preview-content');
+      if (!contentEl) return;
+      
+      const plainText = contentEl.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(plainText).then(() => {
+          showToast('表・文書テキストをクリップボードにコピーしました！ExcelやWordに貼り付けできます。', 'success');
+        }).catch(() => {
+          fallbackCopyText(plainText);
+        });
+      } else {
+        fallbackCopyText(plainText);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('クリップボードにコピーしました！', 'success');
+    }
+
+    function switchPrintMode(mode) {
+      STATE.printMode = mode;
+      ['summary', 'parent', 'teacher'].forEach(m => {
+        const tab = document.getElementById(`tab-print-${m}`);
+        if (tab) {
+          tab.className = m === mode ? 'px-4 py-2 border-b-2 border-indigo-600 text-indigo-700 font-bold whitespace-nowrap' : 'px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap';
+        }
+      });
+      renderPrintArea();
+    }
+
+    function toggleSummaryPrivacy(isNumberOnly) {
+      STATE.summaryPrivacyNumberOnly = isNumberOnly;
+      renderPrintArea();
+    }
+
+    function renderPrintArea() {
+      const container = document.getElementById('print-area');
+      if (STATE.printMode === 'summary') {
+        const classes = getRegisteredClasses();
+        container.innerHTML = classes.map(className => {
+          const classSlots = STATE.slots.filter(s => {
+            const stuId = STATE.assignment[s.id];
+            const stu = stuId ? STATE.students.find(st => st.id === stuId) : null;
+            return stu && stu.gradeClass === className;
+          });
+          return `
+            <div class="print-card-item mb-8 border-b pb-6">
+              <h3 class="text-base font-bold text-slate-900 text-center mb-3">【${className}】${STATE.eventMeta.title} 日程表</h3>
+              <table class="w-full text-xs text-left border border-slate-300">
+                <thead><tr class="bg-slate-100"><th class="p-2">面談日</th><th class="p-2">時間</th><th class="p-2">番号</th><th class="p-2">生徒氏名</th><th class="p-2">会場</th></tr></thead>
+                <tbody>
+                  ${classSlots.map(s => {
+                    const stu = STATE.students.find(st => st.id === STATE.assignment[s.id]);
+                    return `<tr><td class="p-2">${s.date}</td><td class="p-2 font-mono">${s.startTime}-${s.endTime}</td><td class="p-2">${stu ? stu.studentNumber + '番' : '-'}</td><td class="p-2 font-bold">${stu ? (STATE.summaryPrivacyNumberOnly ? stu.studentNumber + '番 ご家庭' : stu.name) : '空き'}</td><td class="p-2">${s.room}</td></tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }).join('');
+      } else if (STATE.printMode === 'parent') {
+        container.innerHTML = STATE.students.map(s => {
+          const slotId = STATE.reverseAssignment[s.id];
+          const slot = slotId ? STATE.slots.find(sl => sl.id === slotId) : null;
+          return `
+            <div class="print-card-item border border-slate-300 p-6 mb-4 rounded-xl bg-white space-y-2">
+              <div class="flex justify-between items-center border-b pb-2">
+                <span class="font-bold text-sm">${s.name} さん 個別面談 決定通知書</span>
+                <span class="text-xs bg-slate-100 px-2 py-0.5 rounded font-semibold">${s.gradeClass} ${s.studentNumber ? s.studentNumber + '番' : ''}</span>
+              </div>
+              <div class="text-xs text-slate-700 pt-1">
+                <p><strong>決定日時:</strong> ${slot ? `${slot.date} ${slot.startTime} 〜 ${slot.endTime}` : '日程調整中'}</p>
+                <p><strong>面談会場:</strong> ${slot ? slot.room : '-'}</p>
+                <p><strong>担当教員:</strong> ${slot ? slot.teacherName : '-'}</p>
+              </div>
+              <p class="text-[11px] text-slate-500 pt-2 border-t">開始5分前までに各学年控室へお越しください。上履きをご持参ください。</p>
+            </div>
+          `;
+        }).join('');
+      } else {
+        container.innerHTML = STATE.teachers.map(t => {
+          const teacherSlots = STATE.slots.filter(s => s.teacherId === t.id);
+          return `
+            <div class="print-card-item mb-8 border-b pb-6">
+              <h3 class="text-base font-bold text-slate-900 text-center mb-3">教員面談進行表: ${t.name} (${t.class})</h3>
+              <table class="w-full text-xs text-left border border-slate-300">
+                <thead><tr class="bg-slate-100"><th class="p-2">時間帯</th><th class="p-2">生徒氏名</th><th class="p-2">学級・番号</th><th class="p-2">状態・備考</th></tr></thead>
+                <tbody>
+                  ${teacherSlots.map(s => {
+                    const stu = STATE.students.find(st => st.id === STATE.assignment[s.id]);
+                    return `<tr><td class="p-2 font-mono">${s.date} ${s.startTime}-${s.endTime}</td><td class="p-2 font-bold">${stu ? stu.name : '空き枠'}</td><td class="p-2">${stu ? `${stu.gradeClass} ${stu.studentNumber || ''}番` : '-'}</td><td class="p-2">${s.isBlocked ? '除外枠' : (stu ? '確定' : '-')}</td></tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // ==========================================
+    // 生徒名簿 CRUD
+    // ==========================================
+    function openAddStudentModal() {
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      const modalFooter = document.getElementById('modal-footer');
+      const classes = getRegisteredClasses();
+
+      modalTitle.innerText = '生徒の個別追加';
+      modalBody.innerHTML = `
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">学年・クラス</label>
+              <select id="add-student-class" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white">
+                ${classes.map(c => `<option value="${c}">${c}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">出席番号</label>
+              <input type="number" id="add-student-num" value="${STATE.students.length + 1}" class="w-full border border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">生徒氏名</label>
+            <input type="text" id="add-student-name" placeholder="例: 山田 花子" class="w-full border border-slate-300 rounded-lg p-2 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">暗証番号 (PIN)</label>
+            <input type="text" id="add-student-pin" value="${Math.floor(1000 + Math.random() * 9000)}" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-mono">
+          </div>
+        </div>
+      `;
+      modalFooter.innerHTML = `
+        <button onclick="closeModal()" class="px-4 py-2 border rounded-lg text-xs font-semibold hover:bg-slate-50">キャンセル</button>
+        <button onclick="saveNewStudent()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-xs">登録する</button>
+      `;
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function saveNewStudent() {
+      const gradeClass = document.getElementById('add-student-class').value;
+      const num = parseInt(document.getElementById('add-student-num').value, 10) || 1;
+      const name = document.getElementById('add-student-name').value.trim();
+      const pin = document.getElementById('add-student-pin').value.trim();
+
+      if (!name) {
+        showToast('生徒氏名を入力してください。', 'error');
+        return;
+      }
+
+      STATE.students.push({
+        id: `stu-${Date.now()}`,
+        gradeClass,
+        studentNumber: num,
+        name,
+        pin,
+        siblingGroupId: null
+      });
+
+      closeModal();
+      renderRosterTable();
+      renderDashboard();
+      updateClassSelectOptions();
+      showToast('生徒を登録しました。', 'success');
+    }
+
+    function editStudent(studentId) {
+      const student = STATE.students.find(s => s.id === studentId);
+      if (!student) return;
+      const classes = getRegisteredClasses();
+
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      const modalFooter = document.getElementById('modal-footer');
+
+      modalTitle.innerText = `生徒情報の編集: ${student.name}`;
+      modalBody.innerHTML = `
+        <div class="space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">学年・クラス</label>
+              <select id="edit-student-class" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white">
+                ${classes.map(c => `<option value="${c}" ${c === student.gradeClass ? 'selected' : ''}>${c}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">出席番号</label>
+              <input type="number" id="edit-student-num" value="${student.studentNumber || ''}" class="w-full border border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">生徒氏名</label>
+            <input type="text" id="edit-student-name" value="${student.name}" class="w-full border border-slate-300 rounded-lg p-2 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">暗証番号 (PIN)</label>
+            <input type="text" id="edit-student-pin" value="${student.pin}" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-mono">
+          </div>
+        </div>
+      `;
+      modalFooter.innerHTML = `
+        <button onclick="closeModal()" class="px-4 py-2 border rounded-lg text-xs font-semibold hover:bg-slate-50">キャンセル</button>
+        <button onclick="updateStudent('${student.id}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-xs">保存する</button>
+      `;
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function updateStudent(studentId) {
+      const student = STATE.students.find(s => s.id === studentId);
+      if (!student) return;
+
+      student.gradeClass = document.getElementById('edit-student-class').value;
+      student.studentNumber = parseInt(document.getElementById('edit-student-num').value, 10) || null;
+      student.name = document.getElementById('edit-student-name').value.trim();
+      student.pin = document.getElementById('edit-student-pin').value.trim();
+
+      closeModal();
+      renderRosterTable();
+      renderDashboard();
+      updateClassSelectOptions();
+      showToast('生徒情報を更新しました。', 'success');
+    }
+
+    function deleteStudent(studentId) {
+      STATE.students = STATE.students.filter(s => s.id !== studentId);
+      const slotId = STATE.reverseAssignment[studentId];
+      if (slotId) {
+        delete STATE.assignment[slotId];
+        delete STATE.reverseAssignment[studentId];
+      }
+      delete STATE.preferences[studentId];
+
+      renderRosterTable();
+      renderDashboard();
+      showToast('生徒を削除しました。', 'info');
+    }
+
+    function openSlotActionModal(slotId) {
+      const slot = STATE.slots.find(s => s.id === slotId);
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      const modalFooter = document.getElementById('modal-footer');
+
+      modalTitle.innerText = `${slot.date} ${slot.startTime}-${slot.endTime} の手動割当`;
+      modalBody.innerHTML = `
+        <select id="modal-select-student" class="w-full border p-2 text-xs rounded-lg">
+          <option value="">-- 空き枠にする --</option>
+          ${STATE.students.map(s => `<option value="${s.id}" ${STATE.assignment[slotId] === s.id ? 'selected' : ''}>${s.name} (${s.gradeClass})</option>`).join('')}
+        </select>
+      `;
+      modalFooter.innerHTML = `
+        <button onclick="closeModal()" class="px-4 py-2 border rounded-lg text-xs font-semibold hover:bg-slate-50">閉じる</button>
+        <button onclick="applyManualAssign('${slotId}')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-xs">保存</button>
+      `;
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function applyManualAssign(slotId) {
+      const newStuId = document.getElementById('modal-select-student').value;
+      const oldStuId = STATE.assignment[slotId];
+      if (oldStuId) delete STATE.reverseAssignment[oldStuId];
+
+      if (newStuId) {
+        const prevSlot = STATE.reverseAssignment[newStuId];
+        if (prevSlot) delete STATE.assignment[prevSlot];
+        STATE.assignment[slotId] = newStuId;
+        STATE.reverseAssignment[newStuId] = slotId;
+      } else {
+        delete STATE.assignment[slotId];
+      }
+      closeModal();
+      renderDashboard();
+      showToast('割り当てを更新しました。', 'success');
+    }
+
+    // ==========================================
+    // その他ユーティリティ・インポート/エクスポート
+    // ==========================================
+    function confirmResetAssignments() {
+      if (confirm('すべての確定した面談スケジュールをリセットして空き枠に戻しますか？')) {
+        STATE.assignment = {};
+        STATE.reverseAssignment = {};
+        STATE.unassignedStudents = [...STATE.students];
+        renderDashboard();
+        showToast('面談割当をリセットしました。', 'info');
+      }
+    }
+
+    function exportCSV() {
+      let csv = "\uFEFFスロットID,面談日,開始,終了,教員名,会場,除外フラグ,生徒氏名,学級\n";
+      STATE.slots.forEach(s => {
+        const stu = STATE.students.find(st => st.id === STATE.assignment[s.id]);
+        csv += [s.id, s.date, s.startTime, s.endTime, s.teacherName, s.room, s.isBlocked ? '除外' : '', stu ? stu.name : '', stu ? stu.gradeClass : ''].map(v => `"${v}"`).join(',') + "\n";
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `面談スロット一覧_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      showToast('スロット一覧CSVを出力しました。', 'success');
+    }
+
+    function exportICal() {
+      let ical = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//EduSchedule//JP\n";
+      for (const [slotId, stuId] of Object.entries(STATE.assignment)) {
+        const slot = STATE.slots.find(s => s.id === slotId);
+        const stu = STATE.students.find(s => s.id === stuId);
+        if (slot && stu) {
+          const dtDate = slot.date.replace(/-/g, '');
+          const dtStart = slot.startTime.replace(/:/g, '') + '00';
+          const dtEnd = slot.endTime.replace(/:/g, '') + '00';
+          ical += `BEGIN:VEVENT\nSUMMARY:個別面談: ${stu.name} (${stu.gradeClass})\nDESCRIPTION:担当教員: ${slot.teacherName}\\n会場: ${slot.room}\nDTSTART:${dtDate}T${dtStart}\nDTEND:${dtDate}T${dtEnd}\nLOCATION:${slot.room}\nEND:VEVENT\n`;
+        }
+      }
+      ical += "END:VCALENDAR";
+      const blob = new Blob([ical], { type: 'text/calendar;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `個別面談予定_${new Date().toISOString().slice(0, 10)}.ics`;
+      a.click();
+      showToast('カレンダー同期ファイル(iCal)を出力しました。', 'success');
+    }
+
+    function openUnassignedResolverModal() {
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+      modalTitle.innerText = '未割り当て生徒の確認';
+      modalBody.innerHTML = `
+        <div class="space-y-2 text-xs">
+          <p class="text-slate-600">希望の重複等により配置できなかった生徒一覧です：</p>
+          <ul class="divide-y border rounded-lg max-h-60 overflow-y-auto">
+            ${STATE.unassignedStudents.map(s => `<li class="p-2 flex justify-between"><span>${s.name} (${s.gradeClass})</span><span class="text-rose-600 font-bold">未確定</span></li>`).join('')}
+          </ul>
+        </div>
+      `;
+      document.getElementById('app-modal').classList.remove('hidden');
+    }
+
+    function downloadStudentCsvTemplate() {
+      const csv = "\uFEFF学年クラス,出席番号,生徒氏名,兄弟世帯コード,個別認証PIN\n1年1組,1,山田 太郎,F-YAMADA,1234\n1年1組,2,佐藤 次郎,,5678\n";
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '生徒名簿テンプレート.csv';
+      a.click();
+      showToast('CSVテンプレートをダウンロードしました。', 'success');
+    }
+
+    function importStudentCSV(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const text = evt.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length <= 1) {
+          showToast('CSVにデータが含まれていません。', 'error');
+          return;
+        }
+
+        const newStudents = [];
+        for (let i = 1; i < lines.length; i++) {
+          const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+          if (parts.length >= 3) {
+            newStudents.push({
+              id: `stu-csv-${Date.now()}-${i}`,
+              gradeClass: parts[0],
+              studentNumber: parseInt(parts[1], 10) || i,
+              name: parts[2],
+              siblingGroupId: parts[3] || null,
+              pin: parts[4] || String(Math.floor(1000 + Math.random() * 9000))
+            });
+          }
+        }
+
+        if (newStudents.length > 0) {
+          STATE.students = newStudents;
+          renderRosterTable();
+          renderDashboard();
+          updateClassSelectOptions();
+          showToast(`${newStudents.length} 名の生徒名簿を取り込みました！`, 'success');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    function exportParentPinsCSV() {
+      let csv = "\uFEFF学年クラス,出席番号,生徒氏名,兄弟世帯コード,個別認証PIN\n";
+      STATE.students.forEach(s => {
+        csv += [s.gradeClass, s.studentNumber || '', s.name, s.siblingGroupId || '', s.pin].map(v => `"${v}"`).join(',') + "\n";
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `保護者PIN一覧_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      showToast('PIN一覧CSVをダウンロードしました。', 'success');
+    }
+
+    function saveEventMetadata() {
+      STATE.eventMeta.title = document.getElementById('setting-event-title').value.trim();
+      STATE.eventMeta.schoolName = document.getElementById('setting-school-name').value.trim();
+      STATE.eventMeta.deadline = document.getElementById('setting-deadline-date').value;
+      STATE.eventMeta.notice = document.getElementById('setting-notice-text').value.trim();
+
+      document.getElementById('header-event-title').innerText = STATE.eventMeta.title;
+      document.getElementById('header-school-meta').innerText = `${STATE.eventMeta.schoolName} 個別面談調整システム`;
+      showToast('面談イベントの基本情報を保存しました。', 'success');
+    }
+
+    function backupSystemDataJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(STATE, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute("href", dataStr);
+      a.setAttribute("download", `面談システム設定バックアップ_${new Date().toISOString().slice(0, 10)}.json`);
+      a.click();
+      showToast('システム全体のバックアップJSONを保存しました。', 'success');
+    }
+
+    function restoreSystemDataJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          Object.assign(STATE, parsed);
+          renderDashboard();
+          renderTeachersTable();
+          renderRosterTable();
+          updateClassSelectOptions();
+          showToast('JSONバックアップからデータを復元しました！', 'success');
+        } catch (err) {
+          showToast('ファイルの読み込みに失敗しました。正しいJSONファイルかご確認ください。', 'error');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    function confirmClearDemoData() {
+      if (confirm('サンプル生徒名簿を消去し、0名から本番運用を開始しますか？')) {
+        STATE.students = [];
+        STATE.assignment = {};
+        STATE.reverseAssignment = {};
+        STATE.preferences = {};
+        STATE.siblingGroups = {};
+        renderRosterTable();
+        renderDashboard();
+        showToast('デモデータを初期化しました。名簿の取り込みを行ってください。', 'info');
+      }
+    }
+
+    function changeTeacherPasscode() {
+      const cur = document.getElementById('passcode-current').value;
+      const nw = document.getElementById('passcode-new').value;
+      const cf = document.getElementById('passcode-confirm').value;
+
+      if (cur !== STATE.teacherPasscode) {
+        showToast('現在のパスコードが一致しません。', 'error');
+        return;
+      }
+      if (!nw) {
+        showToast('新しいパスコードを入力してください。', 'error');
+        return;
+      }
+      if (nw !== cf) {
+        showToast('確認用パスコードが一致しません。', 'error');
+        return;
+      }
+
+      STATE.teacherPasscode = nw;
+      document.getElementById('passcode-current').value = '';
+      document.getElementById('passcode-new').value = '';
+      document.getElementById('passcode-confirm').value = '';
+      showToast('教員パスコードを正常に更新しました！', 'success');
+    }
+
+    function closeModal() {
+      document.getElementById('app-modal').classList.add('hidden');
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-700' : (type === 'error' ? 'bg-rose-700' : 'bg-slate-900');
+      toast.className = `${bg} text-white border shadow-xl px-4 py-3 rounded-2xl text-xs font-semibold flex items-start gap-2.5 toast-anim-in pointer-events-auto`;
+      toast.innerHTML = `<span>${type === 'success' ? '✅' : (type === 'error' ? '⚠️' : 'ℹ️')}</span><div class="flex-1">${msg}</div>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3200);
+    }
+
+    function setupGlobalRippleEffect() {
+      document.addEventListener('pointerdown', function(e) {
+        const targetBtn = e.target.closest('button, [role="button"], label.cursor-pointer');
+        if (!targetBtn) return;
+        const wave = document.createElement('span');
+        wave.className = 'btn-ripple-wave';
+        const rect = targetBtn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height) * 1.5;
+        wave.style.width = `${size}px`;
+        wave.style.height = `${size}px`;
+        wave.style.left = `${e.clientX - rect.left - size / 2}px`;
+        wave.style.top = `${e.clientY - rect.top - size / 2}px`;
+        targetBtn.appendChild(wave);
+        setTimeout(() => wave.remove(), 500);
+      });
+    }
+
+    window.onload = function() {
+      initializeDefaultSlots();
+      renderConfiguredDatesList();
+      renderTeachersTable();
+      updateClassSelectOptions();
+      setupGlobalRippleEffect();
+
+      switchView('parent-portal');
+    };
+  </script>
+</body>
+</html>

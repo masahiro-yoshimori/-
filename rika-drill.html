@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>中学理科ドリル工房</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 方眼ノートの紙面。左に条件パネル（学年×分野のマトリクス）、右に問題カードの列。ダークは黒板。 */
+:root{
+  --paper:#f3f6fa; --sheet:#ffffff; --grid:#e3e9f2; --line:#cfd8e6;
+  --ink:#15202f; --ink-2:#4b5a70; --accent:#15202f; --accent-ink:#ffffff;
+  --hl:#ffe14d; --pen:#e0312b; --ok:#1f7a3d; --ng:#c0352b;
+  --phys:#2f5fd0; --chem:#cf531b; --bio:#2e8540; --earth:#8a5a1c;
+  --font-display:"Dela Gothic One","Zen Kaku Gothic New","Hiragino Sans",sans-serif;
+  --font-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+  --font-q:"Klee One","Zen Kaku Gothic New","Hiragino Mincho ProN",serif;
+  --font-mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#16231e; --sheet:#1d2e27; --grid:#21332b; --line:#35493f;
+  --ink:#eef3ea; --ink-2:#a8bbaf; --accent:#eef3ea; --accent-ink:#16231e;
+  --hl:rgba(255,224,102,.38); --pen:#ff7b72; --ok:#7fd48f; --ng:#ff8f87;
+  --phys:#8fb4ff; --chem:#ffa36b; --bio:#7fd48f; --earth:#e0b872; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#16231e; --sheet:#1d2e27; --grid:#21332b; --line:#35493f;
+  --ink:#eef3ea; --ink-2:#a8bbaf; --accent:#eef3ea; --accent-ink:#16231e;
+  --hl:rgba(255,224,102,.38); --pen:#ff7b72; --ok:#7fd48f; --ng:#ff8f87;
+  --phys:#8fb4ff; --chem:#ffa36b; --bio:#7fd48f; --earth:#e0b872; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background-color:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.7;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--phys);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.app{max-width:1220px;margin:0 auto;padding-block:24px 64px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;grid-template-columns:340px minmax(0,1fr);gap:28px;align-items:start}
+.mast{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;
+  padding-bottom:16px;border-bottom:2px solid var(--ink)}
+.mast h1{font-family:var(--font-display);font-weight:400;font-size:clamp(26px,4.4vw,38px);line-height:1.15;margin:0;letter-spacing:.02em;text-wrap:balance}
+.mast h1 small{display:block;font-family:var(--font-body);font-size:13px;font-weight:500;letter-spacing:.12em;color:var(--ink-2);margin-bottom:4px}
+.mast p{margin:0;color:var(--ink-2);font-size:13.5px;max-width:34em}
+.mast .stats{font-variant-numeric:tabular-nums}
+
+/* ---------- 条件パネル ---------- */
+.panel{background:var(--sheet);border:1.5px solid var(--line);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:20px;position:sticky;top:16px}
+.grp{display:flex;flex-direction:column;gap:8px}
+.grp-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--ink-2)}
+.mini{display:flex;gap:10px}
+.link{background:none;border:0;padding:0;color:var(--ink-2);font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+.link:hover{color:var(--ink)}
+
+.matrix{display:grid;grid-template-columns:34px repeat(4,minmax(0,1fr));gap:4px}
+.matrix .ch-col,.matrix .ch-row{background:none;border:0;padding:2px 0;font-size:12.5px;font-weight:700;color:var(--fc,var(--ink-2))}
+.matrix .ch-row{text-align:left;color:var(--ink-2)}
+.cell{--fc:var(--ink-2);min-height:62px;border:1.5px dashed var(--line);border-radius:4px;background:transparent;padding:5px 5px;
+  font-size:11px;line-height:1.35;text-align:left;color:var(--ink-2);display:flex;flex-direction:column;justify-content:space-between;gap:2px;min-width:0;word-break:break-all}
+.cell b{font-size:10.5px;font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.cell[aria-pressed="true"]{border-style:solid;border-color:var(--fc);color:var(--ink);background:color-mix(in srgb,var(--fc) 13%,var(--sheet))}
+.cell[aria-pressed="true"] b{color:var(--fc)}
+.f-phys{--fc:var(--phys)}.f-chem{--fc:var(--chem)}.f-bio{--fc:var(--bio)}.f-earth{--fc:var(--earth)}
+
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1.5px solid var(--line);background:var(--sheet);border-radius:999px;padding:3px 14px;font-size:14px}
+.seg button[aria-pressed="true"]{border-color:var(--ink);font-weight:700;background:linear-gradient(transparent 52%,var(--hl) 52%)}
+.hint{font-size:12px;color:var(--ink-2);margin:0}
+
+.btn{border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:6px;padding:10px 16px;font-weight:700;font-size:15px;letter-spacing:.04em;transition:transform .12s}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.btn.sm{padding:5px 12px;font-size:13.5px;border-radius:5px}
+.big{width:100%;font-size:16px;padding:12px}
+
+.code{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.code output,.code input{font-family:var(--font-mono);font-size:14px;letter-spacing:.06em;border:1.5px solid var(--line);border-radius:5px;padding:5px 8px;background:var(--paper);min-width:0;flex:1 1 140px}
+.code input{background:var(--sheet)}
+
+/* ---------- メイン ---------- */
+main{min-width:0;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:var(--sheet);border:1.5px solid var(--line);border-radius:6px;padding:10px 12px}
+.tabs{display:flex;gap:4px}
+.tabs button{border:0;background:none;padding:6px 14px;border-radius:5px;font-weight:700;color:var(--ink-2)}
+.tabs button[aria-selected="true"]{color:var(--ink);background:linear-gradient(transparent 55%,var(--hl) 55%)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.score{display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;font-size:14px}
+.score strong{font-family:var(--font-display);font-weight:400;font-size:24px;color:var(--pen);line-height:1}
+.meter{width:110px;height:8px;border-radius:4px;background:var(--grid);overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.meter .m-ok{background:var(--ok)}.meter .m-ng{background:var(--ng)}
+.note{margin:0;font-size:13px;color:var(--ink-2)}
+
+.cards{display:flex;flex-direction:column;gap:14px}
+.card{position:relative;background:var(--sheet);border:1.5px solid var(--line);border-radius:6px;padding:16px 18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card-h{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding-right:56px}
+.qno{font-family:var(--font-display);font-size:18px;line-height:1}
+.tag{border:1.5px solid var(--fc);color:var(--fc);border-radius:3px;padding:0 6px;font-size:12px;font-weight:700;line-height:1.6}
+.topic{font-size:13px;color:var(--ink-2)}
+.kind{font-size:11px;letter-spacing:.12em;color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:0 8px}
+.qt{font-family:var(--font-q);font-weight:600;font-size:17px;line-height:1.85;min-width:0}
+.tw{overflow-x:auto;margin:8px 0 2px}
+.dt{border-collapse:collapse;font-family:var(--font-body);font-weight:500;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dt th,.dt td{border:1px solid var(--ink-2);padding:3px 10px;text-align:center}
+.dt th{font-weight:700;background:var(--paper)}
+
+.ans{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.num{width:9.5em;max-width:100%;border:0;border-bottom:2px solid var(--ink);background:transparent;padding:3px 4px;font-size:18px;font-family:var(--font-q);font-weight:600;font-variant-numeric:tabular-nums}
+.num:focus{outline:none;background:linear-gradient(transparent 60%,var(--hl) 60%)}
+.unit{font-size:15px;margin-right:6px}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ch{display:flex;gap:10px;align-items:flex-start;text-align:left;border:1.5px solid var(--line);border-radius:5px;background:var(--sheet);padding:8px 10px;font-size:14.5px;line-height:1.55;min-width:0}
+.ch:hover:not(:disabled){border-color:var(--ink)}
+.ch:disabled{cursor:default}
+.kana{font-family:var(--font-q);font-weight:600;flex:none;width:1.4em;text-align:center}
+.ch.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--sheet))}
+.ch.wrong{border-color:var(--ng);background:color-mix(in srgb,var(--ng) 10%,var(--sheet));text-decoration:line-through;text-decoration-color:var(--ng)}
+
+.fb{border-top:1.5px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.verdict{margin:0;font-weight:700}
+.verdict.ok{color:var(--ok)}.verdict.ng{color:var(--ng)}.verdict.rv{color:var(--ink-2)}
+.ex{font-size:14px;line-height:1.85;color:var(--ink)}
+.ex b{color:var(--pen)}
+
+.mark{position:absolute;top:8px;right:10px;width:62px;height:62px;pointer-events:none;overflow:visible}
+.mark path{fill:none;stroke:var(--pen);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0;animation:draw .45s ease-out both}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.mark path{animation:none}.btn{transition:none}}
+
+.empty{background:var(--sheet);border:1.5px dashed var(--line);border-radius:6px;padding:28px;text-align:center;color:var(--ink-2)}
+
+/* ---------- プリント ---------- */
+.sheet{background:var(--sheet);border:1.5px solid var(--line);border-radius:6px;padding:28px clamp(16px,4vw,40px) 36px}
+.sh-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.sh-top h2{font-family:var(--font-display);font-weight:400;font-size:24px;margin:0;line-height:1.3}
+.sh-meta{font-size:12px;color:var(--ink-2);margin:2px 0 0}
+.namebox{display:flex;gap:14px;font-size:14px;flex-wrap:wrap}
+.namebox span{border-bottom:1px solid var(--ink);padding:0 4px;min-width:2.6em;display:inline-block}
+.namebox .nm{min-width:9em}
+.sq-list{list-style:none;margin:18px 0 0;padding:0;display:flex;flex-direction:column}
+.sq{padding:14px 0 16px;border-bottom:1px dashed var(--line);break-inside:avoid;display:flex;flex-direction:column;gap:6px}
+.sq-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.sq-h .qno{font-size:16px}
+.sq-tag{font-size:11.5px;color:var(--ink-2)}
+.sq .qt{font-size:15.5px}
+.sq-ch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 20px;font-family:var(--font-q);font-size:14.5px;margin:0;padding:0;list-style:none}
+.aline{align-self:flex-end;display:flex;align-items:flex-end;gap:6px;font-size:14px}
+.abox{display:inline-block;min-width:7em;border:1.5px solid var(--ink);border-radius:2px;height:2.1em;padding:2px 8px;font-family:var(--font-q);font-weight:600;font-size:16px;color:var(--pen);text-align:center}
+.abox.k{min-width:3em}
+.key-ex{font-size:13px;color:var(--pen);line-height:1.8}
+.key-ex b{color:var(--pen)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:6px;font-size:14px;z-index:20}
+
+@media (max-width:880px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .panel{position:static}
+}
+@media (max-width:560px){
+  .choices,.sq-ch{grid-template-columns:minmax(0,1fr)}
+  .qt{font-size:16px}
+  .card{padding:14px}
+}
+@media print{
+  body{background:#fff;color:#000}
+  .mast,.panel,.bar,#solve{display:none!important}
+  #sheet,#sheet[hidden]{display:block!important}
+  .app{display:block;padding:0}
+  .sheet{border:0;padding:0}
+}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="mast">
+    <h1><small>中学校 理科 1〜3年</small>中学理科ドリル工房</h1>
+    <p>学年と分野を選ぶと、計算問題と知識問題をその場でつくります。計算問題の数値は毎回変わり、<span class="stats" id="stats"></span>から出題します。</p>
+  </header>
+
+  <aside class="panel" aria-label="出題の条件">
+    <section class="grp">
+      <div class="grp-h"><span class="lbl">出題範囲（学年 × 分野）</span>
+        <span class="mini"><button class="link" id="allOn" type="button">すべて</button><button class="link" id="allOff" type="button">クリア</button></span></div>
+      <div class="matrix" id="matrix"></div>
+      <p class="hint">行・列の見出しを押すと、その学年や分野をまとめて切りかえます。</p>
+    </section>
+    <section class="grp">
+      <span class="lbl">形式</span>
+      <div class="seg" data-seg="fmt"><button type="button" data-v="0">ミックス</button><button type="button" data-v="1">計算のみ</button><button type="button" data-v="2">知識のみ</button></div>
+    </section>
+    <section class="grp">
+      <span class="lbl">難易度（計算問題）</span>
+      <div class="seg" data-seg="lvl"><button type="button" data-v="1">基本</button><button type="button" data-v="2">標準</button><button type="button" data-v="3">発展</button></div>
+    </section>
+    <section class="grp">
+      <span class="lbl">問題数</span>
+      <div class="seg" data-seg="n"><button type="button" data-v="5">5問</button><button type="button" data-v="10">10問</button><button type="button" data-v="15">15問</button><button type="button" data-v="20">20問</button></div>
+    </section>
+    <button class="btn big" id="gen" type="button">この条件で問題をつくる</button>
+    <section class="grp">
+      <span class="lbl">セットコード</span>
+      <div class="code"><output id="codeOut" aria-label="現在のセットコード"></output><button class="btn ghost sm" id="codeCopy" type="button">コピー</button></div>
+      <div class="code"><label class="sr" for="codeIn">セットコードを入力</label><input id="codeIn" placeholder="例：FFF2210-K7Q3XZ" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="codeLoad" type="button">読み込む</button></div>
+      <p class="hint" id="codeMsg">コードを共有すると、同じ問題セットを別の端末で再現できます。</p>
+    </section>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tabSolve" aria-selected="true" aria-controls="solve" type="button">解く</button>
+        <button role="tab" id="tabPrint" aria-selected="false" aria-controls="sheet" type="button">プリント</button>
+      </div>
+      <div class="tools" id="toolsSolve">
+        <div class="score" aria-live="polite"><span>正解</span><strong id="scOk">0</strong><span id="scOf">/ 0</span><span class="meter" aria-hidden="true"><i class="m-ok" id="mOk"></i><i class="m-ng" id="mNg"></i></span></div>
+        <button class="btn ghost sm" id="retryWrong" type="button">まちがいを解き直す</button>
+        <button class="btn ghost sm" id="retryAll" type="button">最初から</button>
+      </div>
+      <div class="tools" id="toolsPrint" hidden>
+        <button class="btn ghost sm" id="keyToggle" type="button" aria-pressed="false">解答を表示</button>
+        <button class="btn ghost sm" id="copyText" type="button">テキストでコピー</button>
+        <button class="btn sm" id="printBtn" type="button" hidden>印刷する</button>
+      </div>
+    </div>
+    <p class="note" id="note" hidden></p>
+    <div class="cards" id="solve" role="tabpanel" aria-labelledby="tabSolve"></div>
+    <div id="sheet" role="tabpanel" aria-labelledby="tabPrint" hidden></div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+"use strict";
+/* ================= 基本データ ================= */
+const FIELDS=[{k:'phys',n:'物理'},{k:'chem',n:'化学'},{k:'bio',n:'生物'},{k:'earth',n:'地学'}];
+const FNAME={phys:'物理',chem:'化学',bio:'生物',earth:'地学'};
+const UNITS={
+  '1phys':'光・音・力','1chem':'身のまわりの物質','1bio':'いろいろな生物','1earth':'大地の成り立ち',
+  '2phys':'電流とその利用','2chem':'化学変化と原子・分子','2bio':'生物のからだ','2earth':'気象とその変化',
+  '3phys':'運動とエネルギー','3chem':'化学変化とイオン','3bio':'生命の連続性','3earth':'地球と宇宙'};
+const UKEYS=Object.keys(UNITS);
+const KANA=['ア','イ','ウ','エ'];
+const LVN={1:'基本',2:'標準',3:'発展'}, FMTN=['ミックス','計算のみ','知識のみ'];
+
+/* ================= 乱数（シード固定） ================= */
+function hashStr(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19}return h>>>0}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeR(seed){const r=mulberry32(hashStr(seed));return{
+  f:r,int:(a,b)=>a+Math.floor(r()*(b-a+1)),pick:a=>a[Math.floor(r()*a.length)],
+  shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}}}
+const r6=x=>Math.round(x*1e6)/1e6;
+const rd=(x,d)=>{const p=10**d;return Math.round(x*p+1e-9)/p};
+const fmt=x=>String(r6(+x));
+function lv(R,L,arr){const c=arr.filter(a=>a[0]<=L);return R.pick(c.length?c:[arr[0]])[1]()}
+
+/* ================= 計算問題ジェネレーター ================= */
+const GENS=[];
+const G=(u,name,gen)=>GENS.push({u,name,gen});
+
+/* --- 1年 物理 --- */
+G('1phys','ばねののび',(R,L)=>{
+  let g0,x0,g1,x1,n=0;
+  do{g0=R.pick([10,20,50]);x0=R.pick([0.5,1,1.5,2,2.5,3,4]);g1=R.pick([30,40,60,70,80,90,100,120,150,200]);x1=r6(x0*g1/g0)}
+  while((g1===g0||!Number.isInteger(r6(x1*10)))&&++n<80);
+  const L0=R.int(5,20);
+  return lv(R,L,[
+    [1,()=>({q:`ばねに ${g0} g のおもりをつるすと、ばねは ${fmt(x0)} cm のびました。同じばねに ${g1} g のおもりをつるすと、何 cm のびますか。`,ans:x1,unit:'cm',
+      ex:`ばねののびはおもりの重さに比例します（フックの法則）。<br>${fmt(x0)} × ${g1} ÷ ${g0} ＝ <b>${fmt(x1)} cm</b>`})],
+    [2,()=>({q:`自然の長さが ${L0} cm のばねに ${g0} g のおもりをつるすと、ばねの長さは ${fmt(L0+x0)} cm になりました。${g1} g のおもりをつるすと、ばねの長さは何 cm になりますか。`,ans:r6(L0+x1),unit:'cm',
+      ex:`${g0} g でののびは ${fmt(L0+x0)} − ${L0} ＝ ${fmt(x0)} cm。<br>${g1} g でののびは ${fmt(x0)} × ${g1} ÷ ${g0} ＝ ${fmt(x1)} cm。<br>長さ ＝ ${L0} ＋ ${fmt(x1)} ＝ <b>${fmt(L0+x1)} cm</b>`})],
+    [3,()=>{const a=Math.min(g0,g1),b=Math.max(g0,g1),La=r6(L0+x0*a/g0),Lb=r6(L0+x0*b/g0);
+      return{q:`あるばねに ${a} g のおもりをつるすと長さは ${fmt(La)} cm、${b} g のおもりをつるすと長さは ${fmt(Lb)} cm になりました。このばねの自然の長さは何 cm ですか。`,ans:L0,unit:'cm',
+      ex:`${b} − ${a} ＝ ${b-a} g で ${fmt(Lb)} − ${fmt(La)} ＝ ${fmt(Lb-La)} cm のびるので、1 g あたり ${fmt((Lb-La)/(b-a))} cm。<br>${a} g でののびは ${fmt(La-L0)} cm なので、自然の長さ ＝ ${fmt(La)} − ${fmt(La-L0)} ＝ <b>${L0} cm</b>`}}],
+  ]);
+});
+G('1phys','音の速さ・振動数',(R,L)=>lv(R,L,[
+  [1,()=>{const t=R.pick([1.5,2,2.5,3,3.5,4,5,6]);const d=r6(340*t);
+    return{q:`いなずまが光ってから ${t} 秒後に雷の音が聞こえました。音の速さを 340 m/s とすると、雷が発生した場所までの距離は何 m ですか。`,ans:d,unit:'m',
+      ex:`距離 ＝ 速さ × 時間 ＝ 340 × ${t} ＝ <b>${fmt(d)} m</b><br>光は一瞬で届くので、光ってから音が届くまでの時間を使います。`}}],
+  [2,()=>{const t=R.pick([0.4,0.6,0.8,1.2,1.6,2,3]);const d=r6(340*t/2);
+    return{q:`校舎の壁に向かって手をたたくと、${t} 秒後に反射した音が聞こえました。音の速さを 340 m/s とすると、壁までの距離は何 m ですか。`,ans:d,unit:'m',
+      ex:`音は壁まで行って戻ってくるので、往復の距離は 340 × ${t} ＝ ${fmt(340*t)} m。<br>片道は 2 でわって <b>${fmt(d)} m</b>`}}],
+  [2,()=>{const [T,f]=R.pick([['0.002',500],['0.0025',400],['0.004',250],['0.005',200],['0.001',1000]]);
+    return{q:`オシロスコープで音の波形を調べると、1 回の振動にかかる時間が ${T} 秒でした。この音の振動数は何 Hz ですか。`,ans:f,unit:'Hz',
+      ex:`振動数は 1 秒間に振動する回数です。1 ÷ ${T} ＝ <b>${f} Hz</b>`}}],
+]));
+
+/* --- 1年 化学 --- */
+G('1chem','密度',(R,L)=>{
+  const [nm,rho]=R.pick([['アルミニウム',2.70],['鉄',7.87],['銅',8.96],['亜鉛',7.13],['鉛',11.35]]);
+  const V=R.int(2,30), m=r6(rho*V), rs=rho.toFixed(2);
+  return lv(R,L,[
+    [1,()=>({q:`体積 ${V} cm³ の金属のかたまりの質量をはかると ${fmt(m)} g でした。この金属の密度は何 g/cm³ ですか。`,ans:rho,unit:'g/cm³',dp:2,
+      ex:`密度 ＝ 質量 ÷ 体積 ＝ ${fmt(m)} ÷ ${V} ＝ <b>${rs} g/cm³</b><br>この値から、金属は${nm}だと考えられます。`})],
+    [1,()=>({q:`${nm}の密度は ${rs} g/cm³ です。${nm} ${V} cm³ の質量は何 g ですか。`,ans:m,unit:'g',
+      ex:`質量 ＝ 密度 × 体積 ＝ ${rs} × ${V} ＝ <b>${fmt(m)} g</b>`})],
+    [2,()=>{const w=R.pick([30,40,50,60]);return{q:`メスシリンダーに水を ${w}.0 cm³ 入れ、質量 ${fmt(m)} g の金属を静かに沈めると、水面の目盛りは ${w+V}.0 cm³ になりました。この金属の密度は何 g/cm³ ですか。`,ans:rho,unit:'g/cm³',dp:2,
+      ex:`増えた体積が金属の体積です。${w+V} − ${w} ＝ ${V} cm³<br>密度 ＝ ${fmt(m)} ÷ ${V} ＝ <b>${rs} g/cm³</b>`}}],
+    [2,()=>{const V2=R.int(2,30),m2=r6(rho*V2);return{q:`密度 ${rs} g/cm³ の${nm}があります。質量 ${fmt(m2)} g の${nm}の体積は何 cm³ ですか。`,ans:V2,unit:'cm³',
+      ex:`体積 ＝ 質量 ÷ 密度 ＝ ${fmt(m2)} ÷ ${rs} ＝ <b>${V2} cm³</b>`}}],
+  ]);
+});
+G('1chem','質量パーセント濃度',(R,L)=>{
+  const s=R.pick(['食塩','砂糖','ミョウバン']);
+  const p=R.pick([4,5,8,10,12,15,20,25]), tot=R.pick([50,100,150,200,250,300,400]);
+  const a=r6(tot*p/100), w=r6(tot-a);
+  return lv(R,L,[
+    [1,()=>({q:`${s} ${fmt(a)} g を水 ${fmt(w)} g にとかしました。この水溶液の質量パーセント濃度は何％ですか。`,ans:p,unit:'％',
+      ex:`水溶液の質量 ＝ ${fmt(a)} ＋ ${fmt(w)} ＝ ${tot} g<br>濃度 ＝ ${fmt(a)} ÷ ${tot} × 100 ＝ <b>${p}％</b>`})],
+    [1,()=>({q:`${p}％の${s}水 ${tot} g には、${s}が何 g とけていますか。`,ans:a,unit:'g',
+      ex:`${tot} × ${p} ÷ 100 ＝ <b>${fmt(a)} g</b>`})],
+    [2,()=>({q:`${p}％の${s}水を ${tot} g つくるのに必要な<b>水</b>の質量は何 g ですか。`,ans:w,unit:'g',
+      ex:`必要な${s}は ${tot} × ${p} ÷ 100 ＝ ${fmt(a)} g<br>水は ${tot} − ${fmt(a)} ＝ <b>${fmt(w)} g</b>`})],
+    [3,()=>{const add=R.pick([50,100,150,200]);const np=rd(a/(tot+add)*100,1);
+      return{q:`${p}％の${s}水 ${tot} g に水を ${add} g 加えました。濃度は何％になりますか。小数第2位を四捨五入して、小数第1位まで答えなさい。`,ans:np,dp:1,approx:true,unit:'％',
+      ex:`とけている${s}は ${fmt(a)} g のまま。水溶液全体は ${tot} ＋ ${add} ＝ ${tot+add} g<br>${fmt(a)} ÷ ${tot+add} × 100 ≒ <b>${np.toFixed(1)}％</b>`}}],
+  ]);
+});
+G('1chem','溶解度と再結晶',(R,L)=>{
+  const T={20:31.6,40:63.9,60:109.2,80:168.8};
+  const tbl=`<table class="dt"><tr><th>水の温度〔℃〕</th><td>20</td><td>40</td><td>60</td><td>80</td></tr><tr><th>水 100 g にとける質量〔g〕</th><td>31.6</td><td>63.9</td><td>109.2</td><td>168.8</td></tr></table>`;
+  const hi=R.pick([40,60,80]), lo=R.pick([20,40,60].filter(t=>t<hi));
+  return lv(R,L,[
+    [1,()=>{const w=R.pick([50,200,300]);const x=rd(T[hi]*w/100,1);
+      return{q:`表は硝酸カリウムの溶解度です。${hi}℃の水 ${w} g には、硝酸カリウムが最大何 g とけますか。${tbl}`,ans:x,unit:'g',
+      ex:`水 100 g に ${T[hi]} g とけるので、${T[hi]} × ${w} ÷ 100 ＝ <b>${fmt(x)} g</b>`}}],
+    [2,()=>{const x=rd(T[hi]-T[lo],1);
+      return{q:`表は硝酸カリウムの溶解度です。${hi}℃の水 100 g に硝酸カリウムをとけるだけとかし、${lo}℃まで冷やすと、何 g の結晶が出てきますか。${tbl}`,ans:x,unit:'g',
+      ex:`${lo}℃では ${T[lo]} g しかとけないので、${T[hi]} − ${T[lo]} ＝ <b>${fmt(x)} g</b> が結晶になります（再結晶）。`}}],
+    [3,()=>{const w=R.pick([50,200]);const x=rd((T[hi]-T[lo])*w/100,1);
+      return{q:`表は硝酸カリウムの溶解度です。${hi}℃の水 ${w} g に硝酸カリウムをとけるだけとかし、${lo}℃まで冷やすと、何 g の結晶が出てきますか。${tbl}`,ans:x,unit:'g',
+      ex:`水 100 g あたり ${T[hi]} − ${T[lo]} ＝ ${fmt(rd(T[hi]-T[lo],1))} g。<br>水 ${w} g では × ${w} ÷ 100 で <b>${fmt(x)} g</b>`}}],
+  ]);
+});
+
+/* --- 1年 生物 --- */
+G('1bio','顕微鏡の倍率',(R,L)=>lv(R,L,[
+  [1,()=>{const e=R.pick([5,10,15]),o=R.pick([4,10,40]);
+    return{q:`接眼レンズが ${e} 倍、対物レンズが ${o} 倍のとき、顕微鏡の倍率は何倍ですか。`,ans:e*o,unit:'倍',
+      ex:`倍率 ＝ 接眼レンズの倍率 × 対物レンズの倍率 ＝ ${e} × ${o} ＝ <b>${e*o} 倍</b>`}}],
+  [2,()=>{const k=R.pick([2,4]);
+    return{q:`顕微鏡の倍率を ${k} 倍に上げると、視野に見える範囲の面積はもとの何倍になりますか。小数で答えなさい。`,ans:r6(1/(k*k)),unit:'倍',
+      ex:`倍率が ${k} 倍になると、縦も横も 1/${k} の範囲しか見えません。<br>面積は 1/${k} × 1/${k} ＝ 1/${k*k} ＝ <b>${fmt(1/(k*k))} 倍</b>`}}],
+  [3,()=>{const n=R.pick([16,32,48,64]),k=R.pick([2,4]);
+    return{q:`ある倍率で観察すると、視野全体に細胞が一様に広がって ${n} 個見えました。倍率を ${k} 倍に上げると、視野に見える細胞はおよそ何個になりますか。`,ans:n/(k*k),unit:'個',
+      ex:`見える範囲の面積は 1/${k*k} 倍になるので、${n} ÷ ${k*k} ＝ <b>${n/(k*k)} 個</b>`}}],
+]));
+
+/* --- 1年 地学 --- */
+G('1earth','地震のゆれの伝わり方',(R,L)=>{
+  const [vp,vs,f]=R.pick([[6,3,6],[8,4,8],[6,4,12]]);
+  const k=R.int(3,15), d=f*k, tp=d/vp, ts=d/vs;
+  return lv(R,L,[
+    [1,()=>({q:`P波の速さが ${vp} km/s の地震で、震源から ${d} km はなれた地点にP波が届くのは、地震発生の何秒後ですか。`,ans:tp,unit:'秒後',
+      ex:`時間 ＝ 距離 ÷ 速さ ＝ ${d} ÷ ${vp} ＝ <b>${fmt(tp)} 秒後</b>`})],
+    [2,()=>({q:`P波の速さが ${vp} km/s、S波の速さが ${vs} km/s の地震がありました。震源から ${d} km の地点での初期微動継続時間は何秒ですか。`,ans:k,unit:'秒',
+      ex:`P波の到着 ＝ ${d} ÷ ${vp} ＝ ${fmt(tp)} 秒後<br>S波の到着 ＝ ${d} ÷ ${vs} ＝ ${fmt(ts)} 秒後<br>初期微動継続時間 ＝ ${fmt(ts)} − ${fmt(tp)} ＝ <b>${k} 秒</b>`})],
+    [3,()=>({q:`P波の速さが ${vp} km/s、S波の速さが ${vs} km/s の地震で、ある地点の初期微動継続時間は ${k} 秒でした。この地点の震源からの距離は何 km ですか。`,ans:d,unit:'km',
+      ex:`1 km 進むのにかかる時間の差は 1/${vs} − 1/${vp} ＝ 1/${f} 秒。<br>差が ${k} 秒になる距離は ${k} × ${f} ＝ <b>${d} km</b><br>初期微動継続時間は震源からの距離に比例します。`})],
+  ]);
+});
+
+/* --- 2年 物理 --- */
+G('2phys','オームの法則',(R,L)=>{
+  const Rr=R.pick([2,4,5,8,10,12,15,20,25,30,40,50]), I=R.pick([0.1,0.2,0.25,0.3,0.4,0.5,0.6,0.8,1,1.2,1.5,2]);
+  const V=r6(Rr*I), mA=r6(I*1000);
+  return lv(R,L,[
+    [1,()=>({q:`${Rr} Ω の抵抗器に ${fmt(I)} A の電流が流れています。抵抗器に加わる電圧は何 V ですか。`,ans:V,unit:'V',
+      ex:`電圧 ＝ 抵抗 × 電流 ＝ ${Rr} × ${fmt(I)} ＝ <b>${fmt(V)} V</b>`})],
+    [1,()=>({q:`${Rr} Ω の抵抗器に ${fmt(V)} V の電圧を加えると、流れる電流は何 A ですか。`,ans:I,unit:'A',
+      ex:`電流 ＝ 電圧 ÷ 抵抗 ＝ ${fmt(V)} ÷ ${Rr} ＝ <b>${fmt(I)} A</b>`})],
+    [2,()=>({q:`ある電熱線に ${fmt(V)} V の電圧を加えると、${fmt(mA)} mA の電流が流れました。この電熱線の抵抗は何 Ω ですか。`,ans:Rr,unit:'Ω',
+      ex:`${fmt(mA)} mA ＝ ${fmt(I)} A<br>抵抗 ＝ 電圧 ÷ 電流 ＝ ${fmt(V)} ÷ ${fmt(I)} ＝ <b>${Rr} Ω</b>`})],
+    [2,()=>({q:`${Rr} Ω の電熱線に ${fmt(V)} V の電圧を加えると、流れる電流は何 mA ですか。`,ans:mA,unit:'mA',
+      ex:`${fmt(V)} ÷ ${Rr} ＝ ${fmt(I)} A ＝ <b>${fmt(mA)} mA</b>`})],
+  ]);
+});
+G('2phys','直列回路・並列回路',(R,L)=>{
+  const [a,b,p]=R.pick([[3,6,2],[4,12,3],[6,12,4],[10,15,6],[20,30,12],[10,10,5],[12,24,8],[20,20,10],[5,20,4],[30,60,20]]);
+  return lv(R,L,[
+    [1,()=>({q:`${a} Ω と ${b} Ω の抵抗器を<b>直列</b>につなぎました。回路全体の抵抗は何 Ω ですか。`,ans:a+b,unit:'Ω',
+      ex:`直列回路の全体の抵抗は各抵抗の和です。${a} ＋ ${b} ＝ <b>${a+b} Ω</b>`})],
+    [2,()=>({q:`${a} Ω と ${b} Ω の抵抗器を<b>並列</b>につなぎました。回路全体の抵抗は何 Ω ですか。`,ans:p,unit:'Ω',
+      ex:`並列回路では 1/R ＝ 1/${a} ＋ 1/${b} ＝ 1/${p}<br>よって <b>${p} Ω</b>（どちらの抵抗よりも小さくなります）`})],
+    [2,()=>{const I=R.pick([0.2,0.5,1,1.5,2]);const V=r6((a+b)*I);
+      return{q:`${a} Ω と ${b} Ω の抵抗器を直列につなぎ、${fmt(V)} V の電源につなぎました。回路に流れる電流は何 A ですか。`,ans:I,unit:'A',
+      ex:`全体の抵抗 ＝ ${a} ＋ ${b} ＝ ${a+b} Ω<br>電流 ＝ ${fmt(V)} ÷ ${a+b} ＝ <b>${fmt(I)} A</b>`}}],
+    [3,()=>{const I0=R.pick([1,1.5,2,3]);const V=r6(p*I0);
+      return{q:`${a} Ω と ${b} Ω の抵抗器を並列につなぎ、${fmt(V)} V の電源につなぎました。回路全体に流れる電流は何 A ですか。`,ans:I0,unit:'A',
+      ex:`並列なので、どちらの抵抗器にも ${fmt(V)} V が加わります。<br>${fmt(V)} ÷ ${a} ＝ ${fmt(V/a)} A、${fmt(V)} ÷ ${b} ＝ ${fmt(V/b)} A<br>合計 ＝ <b>${fmt(I0)} A</b>`}}],
+    [3,()=>{const I=R.pick([0.5,1,1.5,2]);const V=r6((a+b)*I);
+      return{q:`${a} Ω の抵抗器Aと ${b} Ω の抵抗器Bを直列につなぎ、${fmt(V)} V の電源につなぎました。抵抗器Aに加わる電圧は何 V ですか。`,ans:r6(a*I),unit:'V',
+      ex:`回路の電流 ＝ ${fmt(V)} ÷ (${a} ＋ ${b}) ＝ ${fmt(I)} A<br>Aの電圧 ＝ ${a} × ${fmt(I)} ＝ <b>${fmt(a*I)} V</b>`}}],
+  ]);
+});
+G('2phys','電力・電力量・発熱',(R,L)=>lv(R,L,[
+  [1,()=>{const [P,V]=R.pick([[1200,100],[600,100],[1000,100],[800,100],[12,6],[18,6],[9,3]]);const I=r6(P/V);
+    return{q:`「${V} V－${P} W」と表示された電気器具を ${V} V の電源につないだとき、流れる電流は何 A ですか。`,ans:I,unit:'A',
+      ex:`電流 ＝ 電力 ÷ 電圧 ＝ ${P} ÷ ${V} ＝ <b>${fmt(I)} A</b>`}}],
+  [1,()=>{const V=R.pick([3,6,9,12]),I=R.pick([0.5,1,1.5,2]);
+    return{q:`${V} V の電圧を加えると ${I} A の電流が流れる電熱線の消費電力は何 W ですか。`,ans:r6(V*I),unit:'W',
+      ex:`電力 ＝ 電圧 × 電流 ＝ ${V} × ${I} ＝ <b>${fmt(V*I)} W</b>`}}],
+  [2,()=>{const P=R.pick([6,9,12,18,600,1000,1200]),t=R.int(1,10);
+    return{q:`${P} W の電気器具を ${t} 分間使ったときの電力量は何 J ですか。`,ans:P*60*t,unit:'J',
+      ex:`${t} 分 ＝ ${t*60} 秒。電力量 ＝ 電力 × 時間 ＝ ${P} × ${t*60} ＝ <b>${P*60*t} J</b>`}}],
+  [2,()=>{const P=R.pick([40,60,100,500,800,1200]),h=R.pick([0.5,1.5,2,3,4,5]);
+    return{q:`${P} W の電気器具を ${h} 時間使ったときの電力量は何 Wh ですか。`,ans:r6(P*h),unit:'Wh',
+      ex:`電力量〔Wh〕＝ 電力〔W〕× 時間〔h〕＝ ${P} × ${h} ＝ <b>${fmt(P*h)} Wh</b>`}}],
+  [3,()=>{const P1=R.pick([3,6]),t1=R.pick([2,5]),d1=R.pick([1.5,2,2.5,3]);const P2=P1*R.pick([2,3]),t2=t1*R.pick([1,2,3]);const d2=r6(d1*P2*t2/(P1*t1));
+    return{q:`ある量の水に ${P1} W の電熱線を入れて ${t1} 分間電流を流すと、水温が ${d1}℃上がりました。同じ量の水に ${P2} W の電熱線を入れて ${t2} 分間電流を流すと、水温は何℃上がりますか。発生した熱はすべて水の温度上昇に使われたものとします。`,ans:d2,unit:'℃',
+      ex:`水の上昇温度は「電力 × 時間」（発熱量）に比例します。<br>${d1} × (${P2} × ${t2}) ÷ (${P1} × ${t1}) ＝ <b>${fmt(d2)}℃</b>`}}],
+]));
+
+/* --- 2年 化学 --- */
+G('2chem','化学変化と質量の比',(R,L)=>{
+  const M=R.pick([{n:'銅',ox:'酸化銅',a:4,b:1},{n:'マグネシウム',ox:'酸化マグネシウム',a:3,b:2}]);
+  const k=R.int(2,12), metal=r6(M.a*k/10), oxy=r6(M.b*k/10), oxide=r6((M.a+M.b)*k/10);
+  const hint=`${M.n}と酸素は、質量の比 ${M.a}：${M.b} で結びつきます。`;
+  return lv(R,L,[
+    [1,()=>({q:`${M.n}の粉末 ${fmt(metal)} g を加熱し、完全に酸化させると、何 g の${M.ox}ができますか。${hint}`,ans:oxide,unit:'g',
+      ex:`${M.n}：${M.ox} ＝ ${M.a}：${M.a+M.b}<br>${fmt(metal)} × ${M.a+M.b} ÷ ${M.a} ＝ <b>${fmt(oxide)} g</b>`})],
+    [1,()=>({q:`${M.n}の粉末 ${fmt(metal)} g を完全に酸化させるとき、結びつく酸素は何 g ですか。${hint}`,ans:oxy,unit:'g',
+      ex:`${fmt(metal)} × ${M.b} ÷ ${M.a} ＝ <b>${fmt(oxy)} g</b>`})],
+    [2,()=>({q:`${M.ox}を ${fmt(oxide)} g つくるには、${M.n}が何 g 必要ですか。${hint}`,ans:metal,unit:'g',
+      ex:`${M.n}：${M.ox} ＝ ${M.a}：${M.a+M.b}<br>${fmt(oxide)} × ${M.a} ÷ ${M.a+M.b} ＝ <b>${fmt(metal)} g</b>`})],
+    [3,()=>{const j=R.int(1,k-1);const after=r6(metal+M.b*j/10), left=r6(M.a*(k-j)/10);
+      return{q:`${M.n}の粉末 ${fmt(metal)} g を加熱したところ、加熱が不十分で、加熱後の質量は ${fmt(after)} g でした。酸化されずに残っている${M.n}は何 g ですか。${hint}`,ans:left,unit:'g',
+      ex:`結びついた酸素 ＝ ${fmt(after)} − ${fmt(metal)} ＝ ${fmt(M.b*j/10)} g<br>反応した${M.n} ＝ ${fmt(M.b*j/10)} × ${M.a} ÷ ${M.b} ＝ ${fmt(M.a*j/10)} g<br>残り ＝ ${fmt(metal)} − ${fmt(M.a*j/10)} ＝ <b>${fmt(left)} g</b>`}}],
+  ]);
+});
+G('2chem','質量保存の法則',(R,L)=>{
+  const a=R.pick([60.0,72.5,80.0,95.4,102.6]), b=R.pick([1.0,1.5,2.0,2.5,3.0]), gas=rd(b*0.52,2), c=r6(a+b-gas);
+  return lv(R,L,[
+    [1,()=>({q:`うすい塩酸の入ったビーカー全体の質量は ${a.toFixed(1)} g でした。ここに炭酸水素ナトリウム ${b.toFixed(1)} g を加えて反応させると、全体の質量は ${fmt(c)} g になりました。発生した二酸化炭素は何 g ですか。`,ans:gas,unit:'g',
+      ex:`反応前の合計 ${a.toFixed(1)} ＋ ${b.toFixed(1)} ＝ ${fmt(a+b)} g<br>減った分が空気中に出ていった二酸化炭素です。${fmt(a+b)} − ${fmt(c)} ＝ <b>${fmt(gas)} g</b>`})],
+    [2,()=>({q:`うすい塩酸 ${a.toFixed(1)} g と炭酸水素ナトリウム ${b.toFixed(1)} g を、ふたを閉めた密閉容器の中で反応させました。容器の質量を除いた、反応後の全体の質量は何 g ですか。`,ans:r6(a+b),unit:'g',
+      ex:`密閉容器では発生した気体が外に出ないので、質量保存の法則により質量は変わりません。<br>${a.toFixed(1)} ＋ ${b.toFixed(1)} ＝ <b>${fmt(a+b)} g</b>`})],
+  ]);
+});
+
+/* --- 2年 生物 --- */
+G('2bio','蒸散量の計算',(R,L)=>{
+  const om=R.pick([0.8,1.0,1.2,1.5,2.0]), ur=R.pick([3.0,3.5,4.0,4.8,5.5,6.0]), ku=R.pick([0.2,0.3,0.4,0.5]);
+  const A=r6(om+ur+ku), B=r6(ur+ku), C=r6(om+ku);
+  const setup=`同じ大きさ・枚数の葉がついた枝を3本用意し、水を入れた試験管にさして水面に油を浮かべ、一定時間後の水の減少量を調べました。<table class="dt"><tr><th></th><th>処理</th><th>水の減少量〔mL〕</th></tr><tr><th>A</th><td>何もしない</td><td>${fmt(A)}</td></tr><tr><th>B</th><td>葉の表にワセリンをぬる</td><td>${fmt(B)}</td></tr><tr><th>C</th><td>葉の裏にワセリンをぬる</td><td>${fmt(C)}</td></tr></table>`;
+  const base=`A：表＋裏＋茎　B：裏＋茎　C：表＋茎 から蒸散しています。<br>`;
+  return lv(R,L,[
+    [1,()=>({q:`${setup}葉の<b>裏</b>からの蒸散量は何 mL ですか。`,ans:ur,unit:'mL',ex:`${base}裏 ＝ A − C ＝ ${fmt(A)} − ${fmt(C)} ＝ <b>${fmt(ur)} mL</b>`})],
+    [2,()=>({q:`${setup}葉の<b>表</b>からの蒸散量は何 mL ですか。`,ans:om,unit:'mL',ex:`${base}表 ＝ A − B ＝ ${fmt(A)} − ${fmt(B)} ＝ <b>${fmt(om)} mL</b>`})],
+    [3,()=>({q:`${setup}<b>茎</b>からの蒸散量は何 mL ですか。`,ans:ku,unit:'mL',ex:`${base}表 ＝ A − B ＝ ${fmt(om)} mL なので、茎 ＝ C − 表 ＝ ${fmt(C)} − ${fmt(om)} ＝ <b>${fmt(ku)} mL</b>`})],
+  ]);
+});
+
+/* --- 2年 地学 --- */
+G('2earth','圧力',(R,L)=>lv(R,L,[
+  [1,()=>{let m,a,b,P,n=0;
+    do{m=R.pick([300,500,600,800,1000,1200,1500,2000,2400,3000]);a=R.pick([2,4,5,8,10,20]);b=R.pick([4,5,10,20,25]);P=m*100/(a*b)}while(!Number.isInteger(P)&&++n<80);
+    return{q:`質量 ${m} g の直方体を、縦 ${a} cm × 横 ${b} cm の面を下にして水平な台に置きました。台が受ける圧力は何 Pa ですか。100 g の物体にはたらく重力を 1 N とします。`,ans:r6(P),unit:'Pa',
+      ex:`力 ＝ ${m} ÷ 100 ＝ ${fmt(m/100)} N<br>面積 ＝ ${a} × ${b} ＝ ${a*b} cm² ＝ ${fmt(a*b/10000)} m²<br>圧力 ＝ 力 ÷ 面積 ＝ ${fmt(m/100)} ÷ ${fmt(a*b/10000)} ＝ <b>${fmt(P)} Pa</b>`}}],
+  [2,()=>{const F=R.int(2,30),A=R.pick([10,20,25,40,50,100,200]);const P=F*10000/A;
+    return{q:`${F} N の力が面に垂直にはたらいたところ、圧力は ${fmt(P)} Pa でした。力がはたらいている面積は何 cm² ですか。`,ans:A,unit:'cm²',
+      ex:`面積〔m²〕＝ 力 ÷ 圧力 ＝ ${F} ÷ ${fmt(P)} ＝ ${fmt(A/10000)} m²<br>1 m² ＝ 10000 cm² なので <b>${A} cm²</b>`}}],
+  [3,()=>{const a=R.pick([2,4,5]),b=R.pick([8,10]),c=R.pick([16,20,25]);
+    return{q:`縦 ${a} cm・横 ${b} cm・高さ ${c} cm の直方体があります。いちばん面積の小さい面を下にしたときの圧力は、いちばん面積の大きい面を下にしたときの何倍ですか。`,ans:r6(c/a),unit:'倍',
+      ex:`重さは同じなので、圧力は面積に反比例します。<br>最大の面 ${b} × ${c} ＝ ${b*c} cm²、最小の面 ${a} × ${b} ＝ ${a*b} cm²<br>${b*c} ÷ ${a*b} ＝ <b>${fmt(c/a)} 倍</b>`}}],
+]));
+const SAT={0:4.8,2:5.6,4:6.4,6:7.3,8:8.3,10:9.4,12:10.7,14:12.1,16:13.6,18:15.4,20:17.3,22:19.4,24:21.8,26:24.4,28:27.2,30:30.4};
+function satTable(ts){ts=[...new Set(ts)].sort((x,y)=>x-y);return `<table class="dt"><tr><th>気温〔℃〕</th>${ts.map(t=>`<td>${t}</td>`).join('')}</tr><tr><th>飽和水蒸気量〔g/m³〕</th>${ts.map(t=>`<td>${SAT[t]}</td>`).join('')}</tr></table>`}
+G('2earth','湿度と露点',(R,L)=>{
+  const ts=Object.keys(SAT).map(Number);
+  const T=R.pick(ts.filter(t=>t>=16)), D=R.pick(ts.filter(t=>t>=4&&t<=T-4)), C=R.pick(ts.filter(t=>t<D));
+  const extra=R.pick(ts.filter(t=>t!==T&&t!==D&&t!==C));
+  const v=SAT[D];
+  return lv(R,L,[
+    [1,()=>{const h=rd(v/SAT[T]*100,0);
+      return{q:`気温 ${T}℃ の空気 1 m³ に ${v} g の水蒸気がふくまれています。湿度は何％ですか。小数第1位を四捨五入して整数で答えなさい。${satTable([T,D,extra])}`,ans:h,dp:0,approx:true,unit:'％',
+      ex:`湿度 ＝ 水蒸気量 ÷ 飽和水蒸気量 × 100 ＝ ${v} ÷ ${SAT[T]} × 100 ≒ <b>${h}％</b>`}}],
+    [2,()=>({q:`気温 ${T}℃ の空気 1 m³ に ${v} g の水蒸気がふくまれています。この空気の露点は何℃ですか。${satTable([T,D,extra,C])}`,ans:D,unit:'℃',
+      ex:`飽和水蒸気量が ${v} g/m³ になる温度が露点です。表より <b>${D}℃</b>`})],
+    [2,()=>{const w=rd(v-SAT[C],1);
+      return{q:`気温 ${T}℃ で 1 m³ あたり ${v} g の水蒸気をふくむ空気を ${C}℃ まで冷やしました。空気 1 m³ あたり何 g の水滴ができますか。${satTable([T,D,C,extra])}`,ans:w,unit:'g',
+      ex:`${C}℃ では 1 m³ に ${SAT[C]} g までしかふくめません。<br>${v} − ${SAT[C]} ＝ <b>${fmt(w)} g</b>`}}],
+    [3,()=>{const h=R.pick([40,50,60,70,80]),V=R.pick([30,40,50,60]);const tot=rd(SAT[T]*h/100*V,0);
+      return{q:`気温 ${T}℃、湿度 ${h}％ の部屋（体積 ${V} m³）があります。部屋の空気にふくまれる水蒸気は全部で何 g ですか。小数第1位を四捨五入して整数で答えなさい。${satTable([T,D,extra])}`,ans:tot,dp:0,approx:true,unit:'g',
+      ex:`1 m³ あたり ${SAT[T]} × ${h} ÷ 100 ＝ ${fmt(SAT[T]*h/100)} g<br>部屋全体で × ${V} ≒ <b>${tot} g</b>`}}],
+  ]);
+});
+
+/* --- 3年 物理 --- */
+G('3phys','運動の速さ',(R,L)=>lv(R,L,[
+  [1,()=>{const v=R.pick([1.5,2,2.5,3,4,5,6,8,12.5]),t=R.pick([2,4,5,8,10,20]);const d=r6(v*t);
+    return{q:`台車が ${fmt(d)} m を ${t} 秒で移動しました。平均の速さは何 m/s ですか。`,ans:v,unit:'m/s',
+      ex:`速さ ＝ 距離 ÷ 時間 ＝ ${fmt(d)} ÷ ${t} ＝ <b>${fmt(v)} m/s</b>`}}],
+  [2,()=>{const v=R.pick([5,10,15,20,25,30]);
+    return{q:`${v} m/s は時速何 km ですか。`,ans:r6(v*3.6),unit:'km/h',
+      ex:`1 時間 ＝ 3600 秒なので、1 時間に ${v} × 3600 ＝ ${v*3600} m ＝ ${fmt(v*3.6)} km 進みます。<b>${fmt(v*3.6)} km/h</b>`}}],
+  [2,()=>{const hz=R.pick([50,60]),n=hz/10,x=R.pick([1.2,1.8,2.4,3.0,3.6,4.2,5.4,6.0,7.2]);const v=r6(x*10);
+    return{q:`1 秒間に ${hz} 回打点する記録タイマーで台車の運動を記録しました。${n} 打点ごとに切ったテープの長さが ${x.toFixed(1)} cm のとき、この区間の平均の速さは何 cm/s ですか。`,ans:v,unit:'cm/s',
+      ex:`${n} 打点にかかる時間は ${n} ÷ ${hz} ＝ 0.1 秒。<br>${x.toFixed(1)} ÷ 0.1 ＝ <b>${fmt(v)} cm/s</b>`}}],
+]));
+G('3phys','仕事と仕事率',(R,L)=>{
+  const m=R.pick([200,300,500,800,1000,1500,2000,3000]), h=R.pick([0.5,1,1.5,2,3]), F=m/100, W=r6(F*h);
+  const g='100 g の物体にはたらく重力を 1 N とします。';
+  return lv(R,L,[
+    [1,()=>({q:`質量 ${m} g の物体を、ゆっくりと ${h} m 真上に持ち上げました。手がした仕事は何 J ですか。${g}`,ans:W,unit:'J',
+      ex:`仕事 ＝ 力 × 距離 ＝ ${fmt(F)} × ${h} ＝ <b>${fmt(W)} J</b>`})],
+    [2,()=>{const t=R.pick([2,4,5,10]);return{q:`質量 ${m} g の物体を、${t} 秒かけて ${h} m 真上に持ち上げました。このときの仕事率は何 W ですか。${g}`,ans:r6(W/t),unit:'W',
+      ex:`仕事 ＝ ${fmt(F)} × ${h} ＝ ${fmt(W)} J<br>仕事率 ＝ 仕事 ÷ 時間 ＝ ${fmt(W)} ÷ ${t} ＝ <b>${fmt(W/t)} W</b>`}}],
+    [2,()=>({q:`動滑車を1つ使って、質量 ${m} g の物体をゆっくり ${h} m 持ち上げます。ひもを引く力は何 N ですか。滑車やひもの質量、摩擦は考えないものとします。${g}`,ans:r6(F/2),unit:'N',
+      ex:`動滑車を使うと、力は物体の重さの半分ですみます。${fmt(F)} ÷ 2 ＝ <b>${fmt(F/2)} N</b>`})],
+    [3,()=>({q:`動滑車を1つ使って、質量 ${m} g の物体をゆっくり ${h} m 持ち上げます。ひもを何 m 引けばよいですか。`,ans:r6(h*2),unit:'m',
+      ex:`力が半分になるかわりに、引く距離は 2 倍になります（仕事の原理）。${h} × 2 ＝ <b>${fmt(h*2)} m</b>`})],
+    [3,()=>{const Ls=r6(h*R.pick([2,4,5]));return{q:`摩擦のない長さ ${fmt(Ls)} m の斜面にそって、質量 ${m} g の物体を高さ ${h} m の位置までゆっくり引き上げます。斜面にそって引く力は何 N ですか。${g}`,ans:r6(F*h/Ls),unit:'N',
+      ex:`仕事の原理より、真上に持ち上げる仕事 ${fmt(F)} × ${h} ＝ ${fmt(W)} J と等しくなります。<br>力 ＝ ${fmt(W)} ÷ ${fmt(Ls)} ＝ <b>${fmt(F*h/Ls)} N</b>`}}],
+  ]);
+});
+G('3phys','水圧と浮力',(R,L)=>lv(R,L,[
+  [1,()=>{const a=R.pick([1.2,1.5,2.0,2.4,3.0,4.0]),b=r6(a-R.pick([0.2,0.3,0.4,0.5,0.6,0.8]));
+    return{q:`ばねばかりにつるした物体は、空気中で ${a.toFixed(1)} N、全体を水中に入れると ${fmt(b)} N を示しました。物体にはたらく浮力は何 N ですか。`,ans:r6(a-b),unit:'N',
+      ex:`浮力 ＝ 空気中の値 − 水中の値 ＝ ${a.toFixed(1)} − ${fmt(b)} ＝ <b>${fmt(a-b)} N</b>`}}],
+  [2,()=>{const V=R.pick([20,30,50,80,100,150,200]);
+    return{q:`体積 ${V} cm³ の物体全体を水に沈めました。物体にはたらく浮力は何 N ですか。水 1 cm³ の質量を 1 g、100 g の物体にはたらく重力を 1 N とします。`,ans:r6(V/100),unit:'N',
+      ex:`浮力の大きさは、物体が押しのけた水の重さに等しくなります。<br>水 ${V} cm³ ＝ ${V} g なので <b>${fmt(V/100)} N</b>`}}],
+]));
+
+/* --- 3年 化学 --- */
+G('3chem','中和の量的関係',(R,L)=>{
+  const [a,b]=R.pick([[10,15],[10,20],[10,5],[20,30],[10,12],[15,10],[10,8]]);
+  const c=r6(a*R.pick([1.5,2,2.5,3,4])), need=r6(b*c/a);
+  const base=`ある塩酸 ${a} cm³ を完全に中和するのに、水酸化ナトリウム水溶液が ${b} cm³ 必要でした。`;
+  return lv(R,L,[
+    [1,()=>({q:`${base}同じ塩酸 ${fmt(c)} cm³ を完全に中和するには、同じ水酸化ナトリウム水溶液が何 cm³ 必要ですか。`,ans:need,unit:'cm³',
+      ex:`必要な量は塩酸の量に比例します。${b} × ${fmt(c)} ÷ ${a} ＝ <b>${fmt(need)} cm³</b>`})],
+    [2,()=>{const add=r6(need*R.pick([0.4,0.5,0.6]));return{q:`${base}同じ塩酸 ${fmt(c)} cm³ に、水酸化ナトリウム水溶液を ${fmt(add)} cm³ 加えました。完全に中和させるには、あと何 cm³ 加えればよいですか。`,ans:r6(need-add),unit:'cm³',
+      ex:`完全な中和に必要な量 ＝ ${b} × ${fmt(c)} ÷ ${a} ＝ ${fmt(need)} cm³<br>${fmt(need)} − ${fmt(add)} ＝ <b>${fmt(need-add)} cm³</b>`}}],
+    [3,()=>{const k=R.pick([1,2]);const over=r6(need+b*k);return{q:`${base}同じ塩酸 ${fmt(c)} cm³ に水酸化ナトリウム水溶液を ${fmt(over)} cm³ 加えると、水溶液はアルカリ性になりました。中性にするには、同じ塩酸をあと何 cm³ 加えればよいですか。`,ans:a*k,unit:'cm³',
+      ex:`塩酸 ${fmt(c)} cm³ と中和するのは ${fmt(need)} cm³。あまった水酸化ナトリウム水溶液は ${fmt(over)} − ${fmt(need)} ＝ ${b*k} cm³<br>これを中和する塩酸は ${b*k} × ${a} ÷ ${b} ＝ <b>${a*k} cm³</b>`}}],
+  ]);
+});
+
+/* --- 3年 生物 --- */
+G('3bio','遺伝の規則性',(R,L)=>{
+  const [dom,rec,ch,u]=R.pick([['丸','しわ','種子の形','個'],['黄色','緑色','子葉の色','個'],['背が高い','背が低い','草たけ','本']]);
+  const N=4*R.int(50,300);
+  const head=`エンドウの${ch}で、${dom}の純系と${rec}の純系をかけ合わせると、子はすべて${dom}になりました。この子どうしをかけ合わせて、孫が ${N} ${u}できました。`;
+  return lv(R,L,[
+    [1,()=>({q:`${head}${rec}の孫はおよそ何${u}と考えられますか。`,ans:N/4,unit:u,
+      ex:`子（Aa）どうしのかけ合わせで、孫は AA：Aa：aa ＝ 1：2：1。<br>${dom}：${rec} ＝ 3：1 なので ${N} × 1/4 ＝ <b>${N/4} ${u}</b>`})],
+    [2,()=>({q:`${head}${dom}の孫はおよそ何${u}と考えられますか。`,ans:3*N/4,unit:u,
+      ex:`${dom}：${rec} ＝ 3：1 なので ${N} × 3/4 ＝ <b>${3*N/4} ${u}</b>`})],
+    [3,()=>({q:`${head}${dom}の孫のうち、遺伝子の組み合わせが AA のものはおよそ何${u}と考えられますか（A は${dom}、a は${rec}の遺伝子）。`,ans:N/4,unit:u,
+      ex:`AA：Aa：aa ＝ 1：2：1 なので、AA は全体の 1/4。${N} × 1/4 ＝ <b>${N/4} ${u}</b>`})],
+    [3,()=>({q:`エンドウの${ch}で、遺伝子の組み合わせが Aa の${dom}の個体と、aa の${rec}の個体をかけ合わせて、${N} ${u}の子ができました。${dom}の子はおよそ何${u}ですか（A は${dom}、a は${rec}の遺伝子）。`,ans:N/2,unit:u,
+      ex:`Aa × aa の子は Aa：aa ＝ 1：1。${dom}（Aa）は ${N} × 1/2 ＝ <b>${N/2} ${u}</b>`})],
+  ]);
+});
+
+/* --- 3年 地学 --- */
+G('3earth','天体の動き',(R,L)=>lv(R,L,[
+  [1,()=>{const h=R.int(2,5),t0=R.pick([6,7,8]);
+    return{q:`午後 ${t0} 時に南の空に見えたオリオン座は、同じ日の午後 ${t0+h} 時には、西へ何度動いて見えますか。`,ans:15*h,unit:'度',
+      ex:`地球の自転により、星は 1 時間に 360° ÷ 24 ＝ 15° 動いて見えます。<br>15 × ${h} ＝ <b>${15*h}°</b>`}}],
+  [2,()=>{const m=R.int(1,4);
+    return{q:`ある星座を毎月同じ時刻に観察しました。${m} か月後には、同じ時刻に見える位置が西へ何度移動していますか。`,ans:30*m,unit:'度',
+      ex:`地球の公転により、同じ時刻の星は 1 か月に 360° ÷ 12 ＝ 30° 西へ動きます。<br>30 × ${m} ＝ <b>${30*m}°</b>`}}],
+  [2,()=>{const m=R.int(1,3);
+    return{q:`ある星が午後 10 時に南中しました。${m} か月後にこの星が南中するのは何時ごろですか。24 時制の数字で答えなさい（例：午後 6 時 → 18）。`,ans:22-2*m,unit:'時',
+      ex:`同じ位置に見える時刻は、1 か月に約 2 時間ずつ早くなります。<br>22 − 2 × ${m} ＝ <b>${22-2*m} 時</b>`}}],
+  [3,()=>{const lat=R.pick([26,31,33,35,36,38,40,43]),[sn,dv]=R.pick([['夏至',23.4],['冬至',-23.4],['春分',0],['秋分',0]]);const alt=r6(90-lat+dv);
+    return{q:`北緯 ${lat}° の地点での、${sn}の日の太陽の南中高度は何度ですか。地軸の傾きを 23.4° とします。`,ans:alt,unit:'度',
+      ex:`春分・秋分の南中高度 ＝ 90° − 緯度 ＝ ${90-lat}°<br>${dv>0?'夏至は 23.4° 高くなるので':dv<0?'冬至は 23.4° 低くなるので':'春分・秋分はそのままなので'} <b>${fmt(alt)}°</b>`}}],
+]));
+
+/* ================= 知識問題バンク ================= */
+/* [単元, 項目, 問題, 正解, 誤答1, 誤答2, 誤答3, 解説] */
+const BANK=[
+['1phys','光の反射','光が鏡で反射するとき、入射角と反射角の関係として正しいものはどれですか。','入射角と反射角は等しい','反射角は入射角より大きい','反射角は入射角より小さい','入射角によって大小が入れかわる','反射の法則：入射角 ＝ 反射角。'],
+['1phys','光の屈折','光が水中から空気中へ進むとき、屈折角と入射角の関係として正しいものはどれですか。','屈折角は入射角より大きい','屈折角は入射角より小さい','屈折角と入射角は等しい','光は折れ曲がらずに直進する','水（ガラス）→空気では 屈折角＞入射角。空気→水では逆になります。'],
+['1phys','全反射','水中から空気中へ進む光の入射角を大きくしていくと、光が空気中へ出ずにすべて反射するようになります。この現象を何といいますか。','全反射','乱反射','屈折','分散','光ファイバーにも利用されています。'],
+['1phys','凸レンズ','凸レンズの焦点距離の2倍の位置に物体を置いたとき、スクリーンにうつる像はどれですか。','実物と同じ大きさの倒立の実像','実物より大きい倒立の実像','実物より小さい正立の虚像','像はできない','レンズの反対側の、焦点距離の2倍の位置に像ができます。'],
+['1phys','凸レンズ','物体を凸レンズの焦点より内側に置き、レンズを通して見たときに見える像はどれですか。','実物より大きい正立の虚像','実物より小さい倒立の実像','実物と同じ大きさの倒立の実像','実物より大きい倒立の実像','虫めがねのしくみです。虚像はスクリーンにはうつりません。'],
+['1phys','音の性質','はじく強さは変えずに、弦を短くしたときの音の変化として正しいものはどれですか。','音が高くなる','音が低くなる','音が大きくなる','音が小さくなる','弦が短い・細い・強く張る → 振動数が多くなり、高い音になります。'],
+['1phys','音の性質','音の大きさを決めるものはどれですか。','振幅','振動数','音の速さ','音源までの向き','振幅が大きいほど大きな音。振動数は音の高さを決めます。'],
+['1phys','音の伝わり方','音が伝わらないものはどれですか。','真空','空気','水','鉄','音は物体の振動が伝わる現象なので、物質のない真空中は伝わりません。'],
+['1phys','重さと質量','月面に持っていっても変わらないものはどれですか。','質量','重さ（重力の大きさ）','ばねばかりの示す値','物体にはたらく重力','質量は場所によって変わりません。月面の重力は地球の約 1/6 です。'],
+['1phys','力のつり合い','1つの物体にはたらく2力がつり合う条件として、誤っているものはどれですか。','2力の向きが同じである','2力の大きさが等しい','2力の向きが反対である','2力が一直線上にある','つり合う2力は、大きさが等しく、向きが反対で、一直線上にあります。'],
+
+['1chem','気体の発生','二酸化マンガンにうすい過酸化水素水（オキシドール）を加えると発生する気体はどれですか。','酸素','水素','二酸化炭素','アンモニア','酸素にはものを燃やすはたらきがあります。'],
+['1chem','気体の性質','ある気体を石灰水に通すと白くにごりました。この気体はどれですか。','二酸化炭素','酸素','水素','窒素','石灰水を白くにごらせるのは二酸化炭素の性質です。'],
+['1chem','気体の性質','火のついたマッチを近づけると、ポンと音を立てて燃える気体はどれですか。','水素','酸素','二酸化炭素','アンモニア','水素が燃えると水ができます。'],
+['1chem','気体の集め方','アンモニアの集め方として最も適切なものはどれですか。','上方置換法','下方置換法','水上置換法','どの方法でもよい','水に非常にとけやすく、空気より軽いため上方置換法で集めます。'],
+['1chem','有機物','加熱すると黒くこげ、燃えると二酸化炭素が発生する物質（有機物）はどれですか。','砂糖','食塩','鉄','ガラス','炭素をふくむ物質を有機物といいます。'],
+['1chem','金属の性質','金属に共通する性質ではないものはどれですか。','磁石につく','電気をよく通す','みがくと光る','たたくとうすく広がる','磁石につくのは鉄など一部の金属だけです。'],
+['1chem','状態変化','液体のろうが冷えて固体になるとき、正しいものはどれですか。','体積は減り、質量は変わらない','体積も質量も減る','体積は増え、質量は変わらない','体積は変わらず、質量が減る','状態変化では質量は変わりません。水は例外で、氷になると体積が増えます。'],
+['1chem','蒸留','水とエタノールの混合物を加熱したとき、はじめに多く出てくる液体とその理由の組み合わせはどれですか。','エタノール・沸点が低いから','水・沸点が低いから','エタノール・密度が大きいから','水・質量が大きいから','エタノールの沸点は約 78℃、水は 100℃です。'],
+['1chem','再結晶','水溶液を冷やしても結晶がほとんど出てこない物質はどれですか。','塩化ナトリウム','硝酸カリウム','ミョウバン','ホウ酸','温度による溶解度の変化が小さいので、水を蒸発させて取り出します。'],
+
+['1bio','顕微鏡','顕微鏡で観察を始めるときの操作として正しいものはどれですか。','低倍率の対物レンズで観察を始める','高倍率の対物レンズで観察を始める','接眼レンズをのぞきながら対物レンズとプレパラートを近づける','直射日光の当たる明るい場所で使う','横から見ながら近づけ、のぞきながら遠ざけてピントを合わせます。'],
+['1bio','種子植物','被子植物の特徴として正しいものはどれですか。','胚珠が子房の中にある','胚珠がむき出しになっている','胞子でふえる','種子をつくらない','裸子植物は子房がなく、胚珠がむき出しです。'],
+['1bio','種子植物','裸子植物はどれですか。','マツ','アブラナ','イネ','ゼニゴケ','マツ・イチョウ・スギなどが裸子植物です。'],
+['1bio','単子葉類','単子葉類の特徴の組み合わせとして正しいものはどれですか。','平行脈・ひげ根','網状脈・ひげ根','平行脈・主根と側根','網状脈・主根と側根','双子葉類は網状脈・主根と側根です。'],
+['1bio','シダ・コケ','シダ植物とコケ植物のちがいとして正しいものはどれですか。','シダ植物には維管束があり、コケ植物にはない','コケ植物には維管束があり、シダ植物にはない','シダ植物は種子でふえ、コケ植物は胞子でふえる','シダ植物には根・茎・葉の区別がない','どちらも胞子でふえます。シダ植物には根・茎・葉の区別があります。'],
+['1bio','脊椎動物','子はえらと皮膚で、親は肺と皮膚で呼吸する動物のなかまはどれですか。','両生類','は虫類','魚類','鳥類','カエル・イモリなどが両生類です。'],
+['1bio','脊椎動物','周囲の温度が変化しても体温をほぼ一定に保つ恒温動物のなかまの組み合わせはどれですか。','鳥類と哺乳類','は虫類と鳥類','両生類と哺乳類','魚類と両生類','魚類・両生類・は虫類は変温動物です。'],
+['1bio','動物のからだ','肉食動物の目のつき方とその利点として正しいものはどれですか。','前向きについていて、立体的に見える範囲が広い','横向きについていて、広い範囲を見わたせる','前向きについていて、後方まで見わたせる','横向きについていて、距離を正確につかめる','えものとの距離をつかむのに役立ちます。草食動物は横向きで広い範囲を見わたせます。'],
+['1bio','無脊椎動物','節足動物について正しいものはどれですか。','からだが外骨格でおおわれ、あしに節がある','背骨がある','からだが外とう膜でおおわれている','すべて肺で呼吸する','昆虫類・甲殻類などが節足動物です。外とう膜をもつのは軟体動物です。'],
+
+['1earth','火山','ねばりけの強いマグマによってできる火山の特徴はどれですか。','ドーム状で、白っぽい溶岩が多く、激しい噴火をする','傾斜がゆるやかで、黒っぽい溶岩が多い','傾斜がゆるやかで、おだやかな噴火をする','円すい形で、溶岩は必ず黒っぽい','昭和新山や雲仙普賢岳がその例です。'],
+['1earth','火成岩','斑晶と石基からなる斑状組織をもつ岩石のなかまはどれですか。','火山岩','深成岩','堆積岩','変成岩','マグマが地表付近で急に冷えてできます。'],
+['1earth','火成岩','等粒状組織をもつ深成岩はどれですか。','花こう岩','安山岩','玄武岩','流紋岩','マグマが地下深くでゆっくり冷えてできます。安山岩・玄武岩・流紋岩は火山岩です。'],
+['1earth','地震','マグニチュードが表すものはどれですか。','地震そのものの規模','ある地点でのゆれの大きさ','震源の深さ','初期微動継続時間','ゆれの大きさは震度（0〜7の10段階）で表します。'],
+['1earth','堆積岩','うすい塩酸をかけると二酸化炭素が発生する堆積岩はどれですか。','石灰岩','チャート','砂岩','凝灰岩','チャートは塩酸と反応せず、とてもかたい岩石です。'],
+['1earth','化石','サンゴの化石をふくむ地層が堆積した当時の環境として考えられるものはどれですか。','あたたかくて浅い海','冷たくて深い海','河口付近の湖','寒冷な陸地','当時の環境を示す化石を示相化石といいます。'],
+['1earth','化石','アンモナイトの化石が示す地質年代はどれですか。','中生代','古生代','新生代','先カンブリア時代','年代を示す化石を示準化石といいます。三葉虫は古生代、ビカリアは新生代です。'],
+['1earth','地層','河口から離れた深い海に堆積しやすい粒はどれですか。','泥','れき','砂','どれも同じ','粒が小さいほど、遠くまで運ばれて堆積します。'],
+['1earth','プレート','日本付近で地震が多く起こる理由として正しいものはどれですか。','海洋プレートが大陸プレートの下に沈みこんでいるから','大陸プレートが海洋プレートの下に沈みこんでいるから','プレートが離れていく境界にあるから','プレートがまったく動いていないから','沈みこむ海洋プレートに大陸プレートが引きずりこまれ、ひずみがたまります。'],
+
+['2phys','電流計・電圧計','電圧計のつなぎ方として正しいものはどれですか。','はかりたい部分に並列につなぐ','はかりたい部分に直列につなぐ','電源の＋極と−極に直接つなぐだけでよい','回路のどこにつないでもよい','電流計は直列、電圧計は並列につなぎます。'],
+['2phys','電流計・電圧計','電流の大きさが予想できないとき、電流計の−端子はどれを使いますか。','5 A','500 mA','50 mA','どれでもよい','針がふり切れないよう、最も大きい値の端子から使います。'],
+['2phys','磁界','方位磁針のN極が指す向きを何の向きといいますか。','磁界の向き','電流の向き','力の向き','電子の向き','磁力線はN極から出てS極に入ります。'],
+['2phys','電磁誘導','コイルの中で磁石を動かしたときに電流が流れる現象を何といいますか。','電磁誘導','静電気','放電','電気分解','このとき流れる電流を誘導電流といいます。発電機のしくみです。'],
+['2phys','交流','家庭のコンセントから得られる、向きや大きさが周期的に変わる電流を何といいますか。','交流','直流','誘導電流','静電気','周波数は東日本で 50 Hz、西日本で 60 Hz です。'],
+['2phys','静電気','同じ種類の電気をもつ物体どうしの間にはたらく力はどれですか。','しりぞけ合う力','引き合う力','力ははたらかない','磁石の力','異なる種類の電気どうしは引き合います。'],
+['2phys','電子','陰極線（電子線）の性質として正しいものはどれですか。','−の電気をもち、＋極のほうへ曲がる','＋の電気をもち、−極のほうへ曲がる','電気をもたず、まっすぐ進む','磁石を近づけても曲がらない','陰極線の正体は −の電気をもつ電子の流れです。'],
+['2phys','放射線','X線などの放射線がもつ性質として正しいものはどれですか。','物質を通りぬける能力（透過性）がある','目に見える','においがある','人工的にしかつくられない','放射線は自然界にも存在します。'],
+['2phys','電気抵抗','電熱線の抵抗を大きくしたとき、同じ電圧で流れる電流はどうなりますか。','小さくなる','大きくなる','変わらない','向きが逆になる','オームの法則 I ＝ V ÷ R より、抵抗が大きいほど電流は小さくなります。'],
+
+['2chem','分解','炭酸水素ナトリウムを加熱したときにできる物質の組み合わせはどれですか。','炭酸ナトリウム・水・二酸化炭素','酸化ナトリウム・水素・酸素','塩化ナトリウム・水・二酸化炭素','炭酸ナトリウム・酸素・水素','2NaHCO₃ → Na₂CO₃ ＋ H₂O ＋ CO₂'],
+['2chem','電気分解','水を電気分解したとき、陰極に発生する気体と、陰極・陽極の気体の体積比の組み合わせはどれですか。','水素で、陰極：陽極 ＝ 2：1','酸素で、陰極：陽極 ＝ 2：1','水素で、陰極：陽極 ＝ 1：2','酸素で、陰極：陽極 ＝ 1：1','陰極に水素、陽極に酸素が 2：1 の体積比で発生します。'],
+['2chem','化合','鉄と硫黄の混合物を加熱してできた物質の性質として正しいものはどれですか。','磁石につかず、うすい塩酸を加えると特有のにおいの気体が出る','磁石につき、うすい塩酸を加えると水素が出る','黄色で、磁石につく','加熱前と同じ性質のまま','硫化鉄ができ、塩酸と反応して硫化水素が発生します。'],
+['2chem','還元','酸化銅と炭素の粉末を混ぜて加熱したとき、酸化銅に起こる化学変化を何といいますか。','還元','酸化','分解','中和','2CuO ＋ C → 2Cu ＋ CO₂。炭素は酸化されています。'],
+['2chem','質量保存','化学変化の前後で、物質全体の質量が変わらないことを何といいますか。','質量保存の法則','定比例の法則','フックの法則','オームの法則','原子の組み合わせが変わるだけで、原子の種類と数は変わらないからです。'],
+['2chem','水の検出','塩化コバルト紙に水をつけたときの色の変化はどれですか。','青色 → 赤色（桃色）','赤色 → 青色','白色 → 黒色','黄色 → 緑色','水があるかどうかを調べるのに使います。'],
+['2chem','化学式','二酸化炭素の化学式はどれですか。','CO₂','CO','C₂O','CaCO₃','炭素原子1個と酸素原子2個が結びついています。'],
+['2chem','化学反応式','酸化銀を加熱したときの化学反応式として正しいものはどれですか。','2Ag₂O → 4Ag ＋ O₂','Ag₂O → 2Ag ＋ O','2AgO → 2Ag ＋ O₂','Ag₂O → Ag₂ ＋ O','酸素は分子 O₂ で表し、矢印の左右で原子の数をそろえます。'],
+['2chem','酸化','スチールウール（鉄）を燃やしたあとの物質について正しいものはどれですか。','質量が増え、電流が流れにくくなる','質量が減り、電流が流れやすくなる','質量は変わらず、磁石につく','質量が減り、磁石につく','結びついた酸素の分だけ質量が増え、酸化鉄という別の物質になります。'],
+
+['2bio','細胞','植物の細胞にだけ見られるつくりの組み合わせはどれですか。','細胞壁・葉緑体','核・細胞膜','細胞膜・細胞壁','核・葉緑体','核と細胞膜は動物と植物の両方にあります。'],
+['2bio','光合成','光合成でつくられる物質と使われる物質の組み合わせはどれですか。','デンプンと酸素がつくられ、二酸化炭素と水が使われる','二酸化炭素と水がつくられ、デンプンと酸素が使われる','酸素がつくられ、デンプンが使われる','水がつくられ、酸素が使われる','光のエネルギーを使って葉緑体で行われます。'],
+['2bio','維管束','根から吸収した水や養分が通る管はどれですか。','道管','師管','気孔','柔毛','葉でつくられた栄養分は師管を通ります。'],
+['2bio','蒸散','蒸散が主に行われる、葉の表皮にあるすきまを何といいますか。','気孔','道管','肺胞','柔毛','2つの孔辺細胞に囲まれたすきまです。'],
+['2bio','消化','だ液にふくまれ、デンプンを分解する消化酵素はどれですか。','アミラーゼ','ペプシン','リパーゼ','トリプシン','ペプシンは胃液、リパーゼはすい液にふくまれます。'],
+['2bio','消化','タンパク質が消化されて最終的にできる物質はどれですか。','アミノ酸','ブドウ糖','脂肪酸とモノグリセリド','グリコーゲン','デンプンはブドウ糖、脂肪は脂肪酸とモノグリセリドになります。'],
+['2bio','吸収','小腸の内側の壁にある、表面積を大きくしているつくりはどれですか。','柔毛','肺胞','気孔','弁','表面積が大きいと、養分を効率よく吸収できます。'],
+['2bio','血液','血液の成分のうち、ヘモグロビンをふくみ酸素を運ぶものはどれですか。','赤血球','白血球','血小板','血しょう','白血球は細菌を分解、血小板は出血を止めるはたらきをします。'],
+['2bio','排出','有害なアンモニアを尿素に変えるはたらきをする器官はどれですか。','肝臓','腎臓','すい臓','ぼうこう','尿素は腎臓で血液からこし出されます。'],
+['2bio','反応','熱いものに手がふれて、思わず手を引っこめる反応を何といいますか。','反射','意識して起こす反応','消化','蒸散','せきずいが命令を出すので、反応が速くなります。'],
+
+['2earth','前線','寒冷前線が通過したあとの天気の変化として正しいものはどれですか。','気温が下がり、北寄りの風にかわる','気温が上がり、南寄りの風にかわる','おだやかな雨が長時間降り続く','気圧が下がり続ける','積乱雲が発達し、強い雨が短時間降ります。'],
+['2earth','前線','温暖前線付近で発達する雲と、雨の降り方の組み合わせはどれですか。','乱層雲・弱い雨が長時間','積乱雲・強い雨が短時間','乱層雲・強い雨が短時間','積乱雲・弱い雨が長時間','通過後は気温が上がり、南寄りの風になります。'],
+['2earth','気圧と風','北半球の高気圧の中心付近での風と空気の動きとして正しいものはどれですか。','時計回りにふき出し、下降気流がある','反時計回りにふきこみ、上昇気流がある','時計回りにふきこみ、上昇気流がある','反時計回りにふき出し、下降気流がある','下降気流があるので雲ができにくく、晴れることが多くなります。'],
+['2earth','日本の天気','日本の冬に特徴的な気圧配置はどれですか。','西高東低','南高北低','東高西低','北高南低','シベリア高気圧から北西の季節風がふきます。'],
+['2earth','日本の天気','日本付近の天気が西から東へ移り変わることが多い原因はどれですか。','偏西風','季節風','海風','陸風','中緯度の上空を西から東へふく風です。'],
+['2earth','雲のでき方','空気のかたまりが上昇すると雲ができる理由として正しいものはどれですか。','上空は気圧が低く、空気が膨張して温度が下がり、露点に達するから','上空は気圧が高く、空気が圧縮されて温度が上がるから','上空ほど水蒸気が多いから','上空ほど気温が高いから','露点以下になると、水蒸気が水滴になります。'],
+['2earth','気圧と風','等圧線の間隔がせまいところの風の特徴はどれですか。','風が強い','風が弱い','風がふかない','必ず雨が降る','気圧の差が大きいほど、強い風がふきます。'],
+['2earth','大気圧','海面での1気圧はおよそ何 hPa ですか。','1013 hPa','100 hPa','760 hPa','10000 hPa','1 hPa ＝ 100 Pa です。'],
+
+['3phys','慣性','物体に力がはたらいていない（またはつり合っている）とき、運動している物体はどうなりますか。','等速直線運動を続ける','しだいに速さが小さくなり止まる','しだいに速さが大きくなる','すぐに止まる','慣性の法則です。'],
+['3phys','作用・反作用','壁を手で押すと、手が壁から押し返されます。この2力の関係を何といいますか。','作用・反作用','力のつり合い','力の合成','慣性','2つの物体の間で、同時に、大きさが等しく反対向きにはたらきます。'],
+['3phys','等速直線運動','等速直線運動をしている物体の、時間と移動距離の関係を表すグラフはどれですか。','原点を通る右上がりの直線','横軸に平行な直線','右下がりの直線','原点を通る曲線（放物線）','移動距離は時間に比例します。'],
+['3phys','斜面の運動','斜面を下る台車の運動について正しいものはどれですか。','速さが一定の割合で大きくなる','速さが一定のまま変わらない','速さがしだいに小さくなる','斜面の角度を大きくしても速さの変化は同じ','斜面にそった重力の分力がはたらき続けるためです。角度が大きいほど速さの増え方も大きくなります。'],
+['3phys','エネルギー','摩擦や空気の抵抗がないとき、ふりこの運動で一定に保たれるものはどれですか。','位置エネルギーと運動エネルギーの和','位置エネルギー','運動エネルギー','速さ','力学的エネルギー保存の法則です。'],
+['3phys','熱の伝わり方','ストーブの前で顔があたたかく感じる熱の伝わり方はどれですか。','放射','伝導','対流','蒸発','熱が光（赤外線）などとして空間を伝わります。'],
+['3phys','水圧','水圧について正しいものはどれですか。','深いところほど大きく、あらゆる向きからはたらく','上からだけはたらく','深さに関係なく一定である','水面に近いほど大きい','水の重さによって生じる圧力です。'],
+['3phys','浮力','物体にはたらく浮力の大きさについて正しいものはどれですか。','水中にある部分の体積が大きいほど大きい','物体が深いところにあるほど大きい','物体の質量が大きいほど大きい','物体の色によって決まる','全体が水中にあれば、深さを変えても浮力は変わりません。'],
+
+['3chem','電解質','水にとかしたとき電流が流れる物質（電解質）はどれですか。','塩化ナトリウム','砂糖','エタノール','ブドウ糖','水にとけて陽イオンと陰イオンに電離します。'],
+['3chem','電気分解','塩化銅水溶液を電気分解したとき、陰極と陽極に出てくる物質の組み合わせはどれですか。','陰極に銅、陽極に塩素','陰極に塩素、陽極に銅','陰極に水素、陽極に酸素','陰極に銅、陽極に酸素','CuCl₂ → Cu ＋ Cl₂。銅イオン（＋）は陰極に引かれます。'],
+['3chem','イオン','原子が電子を失ってできるイオンはどれですか。','陽イオン','陰イオン','中性子','原子核','電子（−）を失うと＋の電気を帯びます。'],
+['3chem','酸性','酸性の水溶液の性質として正しいものはどれですか。','青色リトマス紙を赤色に変え、BTB溶液を黄色にする','赤色リトマス紙を青色に変え、BTB溶液を青色にする','フェノールフタレイン溶液を赤色にする','pHが7より大きい','酸性の性質を示すもとは水素イオン H⁺ です。'],
+['3chem','アルカリ性','アルカリ性の性質を示すもとになるイオンはどれですか。','水酸化物イオン OH⁻','水素イオン H⁺','塩化物イオン Cl⁻','ナトリウムイオン Na⁺','OH⁻ と H⁺ が結びつくと水ができます（中和）。'],
+['3chem','中和','うすい塩酸と水酸化ナトリウム水溶液を混ぜて中和したときにできる塩はどれですか。','塩化ナトリウム','硫酸バリウム','塩化水素','炭酸ナトリウム','HCl ＋ NaOH → NaCl ＋ H₂O'],
+['3chem','電池','ダニエル電池で−極になる金属はどれですか。','亜鉛','銅','どちらも−極になる','どちらも＋極になる','イオンになりやすい亜鉛が電子を放出して−極になります。'],
+['3chem','pH','pHの値について正しいものはどれですか。','7が中性で、小さいほど酸性が強い','7が中性で、大きいほど酸性が強い','0が中性である','14が中性である','7より大きいとアルカリ性です。'],
+
+['3bio','細胞分裂','体細胞分裂の前後で、1つの細胞の染色体の数はどうなりますか。','変わらない','半分になる','2倍になる','4倍になる','分裂の前に染色体が複製されるので、数は同じになります。'],
+['3bio','生殖','生殖細胞ができるときに行われ、染色体の数が半分になる細胞分裂を何といいますか。','減数分裂','体細胞分裂','受精','発生','受精によって、もとの数にもどります。'],
+['3bio','無性生殖','無性生殖でできた子の特徴として正しいものはどれですか。','親とまったく同じ形質をもつ','親と異なる形質が必ず現れる','両親の形質を半分ずつ受けつぐ','染色体の数が親の半分になる','親の遺伝子をそのまま受けつぐからです。'],
+['3bio','遺伝','純系の丸い種子としわの種子をかけ合わせると、子はすべて丸になりました。丸のように子に現れる形質を何といいますか。','顕性形質','潜性形質','獲得形質','中間形質','子に現れない形質（しわ）を潜性形質といいます。'],
+['3bio','遺伝子','遺伝子の本体である物質はどれですか。','DNA（デオキシリボ核酸）','アミノ酸','デンプン','ヘモグロビン','DNA は染色体にふくまれています。'],
+['3bio','生態系','食物連鎖のなかで、光合成によって有機物をつくり出す生物を何といいますか。','生産者','消費者','分解者','捕食者','植物や植物プランクトンが生産者です。'],
+['3bio','生態系','落ち葉や動物の死がいなどを無機物に分解する菌類・細菌類は、生態系の中で何とよばれますか。','分解者','生産者','消費者','寄生者','分解者も消費者の一部です。'],
+['3bio','進化','ヒトのうでとクジラの胸びれのように、形やはたらきはちがっても、もとは同じ器官であったと考えられるものを何といいますか。','相同器官','痕跡器官','感覚器官','消化器官','共通の祖先から進化した証拠と考えられています。'],
+
+['3earth','日周運動','太陽が東からのぼり西へしずむように見える原因はどれですか。','地球が西から東へ自転しているから','地球が東から西へ自転しているから','太陽が地球のまわりを回っているから','地球が公転しているから','見かけの動きを日周運動といいます。'],
+['3earth','日周運動','北の空の星は、北極星を中心にどのように動いて見えますか。','反時計回り','時計回り','動かない','東から西へ一直線','1時間に約 15° 反時計回りに動きます。'],
+['3earth','太陽','太陽の黒点が黒く見える理由として正しいものはどれですか。','まわりより温度が低いから','まわりより温度が高いから','太陽にあいた穴だから','地球の影がうつっているから','黒点の移動から、太陽が自転していることがわかります。'],
+['3earth','月','月食が起こるときの太陽・地球・月の並び方はどれですか。','太陽－地球－月','太陽－月－地球','地球－太陽－月','月－太陽－地球','月が地球の影に入る現象です。日食は太陽－月－地球の順です。'],
+['3earth','金星','明け方、東の空に見える金星の呼び名と、真夜中に見えない理由の組み合わせはどれですか。','明けの明星・地球より内側を公転しているから','よいの明星・地球より外側を公転しているから','明けの明星・みずから光っていないから','よいの明星・地球より内側を公転しているから','夕方、西の空に見える金星はよいの明星です。'],
+['3earth','季節','日本で季節によって気温が変化する主な原因はどれですか。','地球が地軸を傾けたまま公転しているから','地球と太陽の距離が季節で大きく変わるから','太陽の明るさが季節で変わるから','月の引力が変わるから','南中高度と昼の長さが変わります。'],
+['3earth','恒星','みずから光を出している天体はどれですか。','恒星','惑星','衛星','小惑星','太陽も恒星の1つです。'],
+['3earth','惑星','地球型惑星の特徴として正しいものはどれですか。','小さく、密度が大きい','大きく、密度が小さい','おもに気体でできている','多くの衛星と環をもつ','水星・金星・地球・火星が地球型惑星です。'],
+].map(r=>({u:r[0],t:r[1],q:r[2],a:r[3],w:[r[4],r[5],r[6]],ex:r[7]}));
+
+/* ================= 問題セットの組み立て ================= */
+function build(cfg,seed){
+  const R=makeR(seed+'/'+encodeCfg(cfg));
+  const order=R.shuffle(UKEYS.filter((u,b)=>cfg.mask>>b&1));
+  const used=new Set(), gUse={}, items=[];
+  for(let i=0,guard=0;items.length<cfg.n&&guard<cfg.n*25;i++,guard++){
+    const u=order[i%order.length];
+    const want=cfg.fmt===1?'calc':cfg.fmt===2?'choice':(R.f()<0.55?'calc':'choice');
+    let it=null;
+    if(want==='choice'){
+      const pool=BANK.filter(b=>b.u===u&&!used.has(b.q));
+      if(pool.length){const b=R.pick(pool);used.add(b.q);const opts=R.shuffle([b.a,...b.w]);
+        it={kind:'choice',u,topic:b.t,q:b.q,choices:opts,correct:opts.indexOf(b.a),ex:b.ex}}
+      else if(cfg.fmt===2) continue;
+    }
+    if(!it){
+      const gs=GENS.filter(g=>g.u===u);
+      const min=Math.min(...gs.map(g=>gUse[g.name]||0));
+      const g=R.pick(gs.filter(g=>(gUse[g.name]||0)===min));
+      let x=null;
+      for(let t=0;t<8;t++){x=g.gen(R,cfg.lvl);if(!used.has(x.q))break}
+      if(used.has(x.q)) continue;
+      used.add(x.q);gUse[g.name]=(gUse[g.name]||0)+1;
+      it=Object.assign({kind:'num',u,topic:g.name},x);
+    }
+    it._o=items.length;items.push(it);
+  }
+  items.sort((a,b)=>UKEYS.indexOf(a.u)-UKEYS.indexOf(b.u)||a._o-b._o);
+  return items;
+}
+
+/* ================= セットコード ================= */
+function encodeCfg(c){return c.mask.toString(16).toUpperCase().padStart(3,'0')+c.fmt+c.lvl+String(c.n).padStart(2,'0')}
+function parseCode(s){
+  const m=String(s).trim().toUpperCase().match(/^([0-9A-F]{3})([0-2])([1-3])(\d{2})-([0-9A-Z]{4,10})$/);
+  if(!m)return null;
+  const c={mask:parseInt(m[1],16)&0xFFF,fmt:+m[2],lvl:+m[3],n:Math.min(30,Math.max(1,+m[4]))};
+  if(!c.mask)return null;
+  return{cfg:c,seed:m[5]};
+}
+function newSeed(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=A[Math.floor(Math.random()*A.length)];return s}
+
+/* ================= 状態 ================= */
+const $=s=>document.querySelector(s);
+const state={cfg:{mask:0xFFF,fmt:0,lvl:2,n:10},seed:'',items:[],res:{},tab:'solve',key:false};
+const KEY='rika-drill-v1';
+function save(){try{localStorage.setItem(KEY,JSON.stringify({code:encodeCfg(state.cfg)+'-'+state.seed,tab:state.tab}))}catch(e){}}
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
+
+/* ================= 条件パネル ================= */
+function renderMatrix(){
+  const m=state.cfg.mask;let h='<span></span>';
+  FIELDS.forEach((f,fi)=>{h+=`<button type="button" class="ch-col f-${f.k}" data-col="${fi}" title="${f.n}をまとめて切りかえ">${f.n}</button>`});
+  for(let g=1;g<=3;g++){
+    h+=`<button type="button" class="ch-row" data-row="${g}" title="${g}年をまとめて切りかえ">${g}年</button>`;
+    FIELDS.forEach((f,fi)=>{const b=(g-1)*4+fi,u=UKEYS[b];
+      const nc=GENS.filter(x=>x.u===u).length,nk=BANK.filter(x=>x.u===u).length;
+      h+=`<button type="button" class="cell f-${f.k}" data-bit="${b}" aria-pressed="${!!(m>>b&1)}" aria-label="${g}年 ${f.n}「${UNITS[u]}」"><span>${UNITS[u]}</span><b>計${nc}・知${nk}</b></button>`});
+  }
+  $('#matrix').innerHTML=h;
+  $('#gen').disabled=!m;
+}
+function renderSegs(){
+  document.querySelectorAll('.seg').forEach(s=>{const k=s.dataset.seg;
+    s.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===state.cfg[k])))});
+}
+$('#matrix').addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;let m=state.cfg.mask;
+  if(t.dataset.bit!=null){m^=1<<+t.dataset.bit}
+  else{let bits=[];
+    if(t.dataset.row){const g=+t.dataset.row;bits=[0,1,2,3].map(i=>(g-1)*4+i)}
+    else{const c=+t.dataset.col;bits=[0,1,2].map(g=>g*4+c)}
+    const all=bits.every(b=>m>>b&1);bits.forEach(b=>{m=all?m&~(1<<b):m|(1<<b)})}
+  state.cfg.mask=m;renderMatrix();
+});
+$('#allOn').onclick=()=>{state.cfg.mask=0xFFF;renderMatrix()};
+$('#allOff').onclick=()=>{state.cfg.mask=0;renderMatrix()};
+document.querySelectorAll('.seg').forEach(s=>s.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;state.cfg[s.dataset.seg]=+b.dataset.v;renderSegs()}));
+$('#gen').onclick=()=>{if(!state.cfg.mask)return;state.seed=newSeed();regen();
+  if(window.matchMedia('(max-width:880px)').matches)$('main').scrollIntoView({behavior:'smooth',block:'start'})};
+
+/* ================= 生成と描画 ================= */
+function regen(){
+  state.items=build(state.cfg,state.seed);state.res={};
+  $('#codeOut').textContent=encodeCfg(state.cfg)+'-'+state.seed;
+  const short=state.items.length<state.cfg.n;
+  const note=$('#note');note.hidden=!short;
+  if(short)note.textContent=`選んだ範囲の知識問題が足りないため、${state.items.length} 問になりました。範囲を広げるか「ミックス」にすると問題数が増えます。`;
+  renderSolve();renderSheet();updateScore();save();
+}
+const wrapT=h=>h.replace(/<table/g,'<div class="tw"><table').replace(/<\/table>/g,'</table></div>');
+const ansText=it=>it.kind==='num'?(it.dp!=null?Number(it.ans).toFixed(it.dp):fmt(it.ans))+' '+it.unit:KANA[it.correct]+'　'+it.choices[it.correct];
+function head(it,i){const fk=it.u.slice(1);
+  return `<span class="qno">問${i+1}</span><span class="tag f-${fk}">${it.u[0]}年・${FNAME[fk]}</span><span class="topic">${it.topic}</span><span class="kind">${it.kind==='num'?'計算':'知識'}</span>`}
+function renderSolve(){
+  const box=$('#solve');
+  if(!state.items.length){box.innerHTML='<div class="empty">出題範囲を1つ以上選んで「この条件で問題をつくる」を押してください。</div>';return}
+  box.innerHTML=state.items.map((it,i)=>`<article class="card" id="q${i}">
+    <svg class="mark" viewBox="0 0 100 100" aria-hidden="true"></svg>
+    <header class="card-h">${head(it,i)}</header>
+    <div class="qt">${wrapT(it.q)}</div>
+    ${it.kind==='num'
+      ?`<div class="ans"><label class="sr" for="in${i}">問${i+1}の答え</label><input id="in${i}" class="num" inputmode="decimal" autocomplete="off" placeholder="数値を入力" data-i="${i}"><span class="unit">${it.unit}</span><button type="button" class="btn sm" data-act="check" data-i="${i}">答え合わせ</button><button type="button" class="link" data-act="reveal" data-i="${i}">答えを見る</button></div>`
+      :`<div class="choices">${it.choices.map((c,k)=>`<button type="button" class="ch" data-act="pick" data-i="${i}" data-k="${k}"><span class="kana">${KANA[k]}</span><span>${c}</span></button>`).join('')}</div>`}
+    <div class="fb" id="fb${i}" hidden></div>
+  </article>`).join('');
+}
+function parseNum(s){
+  s=String(s).replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[．。]/g,'.').replace(/[－−ー]/g,'-').replace(/[,，\s]/g,'');
+  const m=s.match(/^-?\d*\.?\d+/);return m?parseFloat(m[0]):NaN}
+function isRight(it,x){const tol=it.approx?0.5*10**-(it.dp||0)+1e-9:1e-6*Math.max(1,Math.abs(it.ans));return Math.abs(x-it.ans)<=tol}
+const MARK_OK='<path pathLength="1" d="M52 12 C80 11 93 33 89 56 C85 80 61 92 40 88 C18 83 8 61 14 39 C19 22 35 13 58 14"/>';
+const MARK_NG='<path pathLength="1" d="M18 46 L40 74 L86 14"/>';
+function settle(i,kind){
+  const it=state.items[i],card=$('#q'+i),fb=$('#fb'+i);
+  state.res[i]=kind;
+  card.querySelector('.mark').innerHTML=kind==='ok'?MARK_OK:kind==='ng'?MARK_NG:'';
+  card.querySelectorAll('input,.ans button,.ch').forEach(el=>el.disabled=true);
+  const v=kind==='ok'?'<p class="verdict ok">正解</p>':kind==='ng'?`<p class="verdict ng">不正解　正しい答えは <b>${ansText(it)}</b></p>`:`<p class="verdict rv">答え　<b>${ansText(it)}</b></p>`;
+  fb.innerHTML=v+`<div class="ex">${it.ex}</div>`;fb.hidden=false;
+  updateScore();
+}
+$('#solve').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const i=+b.dataset.i,it=state.items[i];
+  if(b.dataset.act==='pick'){const k=+b.dataset.k;
+    $('#q'+i).querySelectorAll('.ch').forEach((c,j)=>{if(j===it.correct)c.classList.add('right');else if(j===k)c.classList.add('wrong')});
+    settle(i,k===it.correct?'ok':'ng')}
+  else if(b.dataset.act==='check'){const inp=$('#in'+i),x=parseNum(inp.value);
+    if(isNaN(x)){inp.focus();toast('数値を入力してください');return}
+    settle(i,isRight(it,x)?'ok':'ng')}
+  else if(b.dataset.act==='reveal'){settle(i,'rv')}
+});
+$('#solve').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('.num')){e.preventDefault();$('#q'+e.target.dataset.i+' [data-act="check"]').click()}});
+function updateScore(){
+  const n=state.items.length,v=Object.values(state.res),ok=v.filter(x=>x==='ok').length,ng=v.length-ok;
+  $('#scOk').textContent=ok;$('#scOf').textContent=`/ ${n}　（回答 ${v.length}）`;
+  $('#mOk').style.width=n?ok/n*100+'%':'0';$('#mNg').style.width=n?ng/n*100+'%':'0';
+  $('#retryWrong').disabled=!ng;$('#retryAll').disabled=!v.length;
+}
+function reopen(idx){
+  const keep={...state.res};idx.forEach(i=>delete keep[i]);
+  const vals={};state.items.forEach((_,i)=>{const el=$('#in'+i);if(el)vals[i]=el.value});
+  renderSolve();state.res={};
+  Object.entries(keep).forEach(([i,k])=>{const el=$('#in'+i);if(el)el.value=vals[i]||'';
+    const it=state.items[i];if(it.kind==='choice'){const cs=$('#q'+i).querySelectorAll('.ch');cs[it.correct].classList.add('right')}
+    settle(+i,k)});
+  idx.forEach(i=>{const el=$('#in'+i);if(el)el.value=''});
+  updateScore();
+  const first=idx.length?$('#q'+Math.min(...idx)):null;if(first)first.scrollIntoView({behavior:'smooth',block:'center'});
+}
+$('#retryWrong').onclick=()=>reopen(Object.keys(state.res).filter(i=>state.res[i]!=='ok').map(Number));
+$('#retryAll').onclick=()=>reopen(state.items.map((_,i)=>i));
+
+/* ---------- プリント ---------- */
+function rangeLabel(){
+  const bits=UKEYS.map((u,b)=>state.cfg.mask>>b&1?u:null).filter(Boolean);
+  if(bits.length===12)return '1〜3年 全分野';
+  return bits.map(u=>`${u[0]}年${FNAME[u.slice(1)]}`).join('・');
+}
+function renderSheet(){
+  const d=new Date(),date=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  const it=state.items;
+  $('#sheet').innerHTML=`<div class="sheet">
+    <div class="sh-top"><div><h2>理科 演習プリント${state.key?'（解答）':''}</h2>
+      <p class="sh-meta">${rangeLabel()}／${FMTN[state.cfg.fmt]}・${LVN[state.cfg.lvl]}／全${it.length}問　${date}　コード ${encodeCfg(state.cfg)}-${state.seed}</p></div>
+      <div class="namebox"><span></span>年<span></span>組<span></span>番　名前<span class="nm"></span></div></div>
+    <ol class="sq-list">${it.map((q,i)=>`<li class="sq">
+      <div class="sq-h">${`<span class="qno">問${i+1}</span>`}<span class="sq-tag">${q.u[0]}年・${FNAME[q.u.slice(1)]}｜${q.topic}</span></div>
+      <div class="qt">${wrapT(q.q)}</div>
+      ${q.kind==='choice'?`<ul class="sq-ch">${q.choices.map((c,k)=>`<li>${KANA[k]}　${c}</li>`).join('')}</ul>`:''}
+      <div class="aline">答え<span class="abox${q.kind==='choice'?' k':''}">${state.key?(q.kind==='num'?(q.dp!=null?Number(q.ans).toFixed(q.dp):fmt(q.ans)):KANA[q.correct]):''}</span>${q.kind==='num'?q.unit:''}</div>
+      ${state.key?`<div class="key-ex">${q.ex}</div>`:''}
+    </li>`).join('')}</ol></div>`;
+}
+function sheetText(){
+  const strip=h=>{const d=document.createElement('div');d.innerHTML=h.replace(/<br\s*\/?>/g,'\n');
+    d.querySelectorAll('table').forEach(t=>{t.replaceWith('\n'+[...t.rows].map(r=>[...r.cells].map(c=>c.textContent.trim()).join(' | ')).join('\n')+'\n')});
+    return d.textContent.trim()};
+  let s=`理科 演習プリント（${rangeLabel()}／全${state.items.length}問）\nコード ${encodeCfg(state.cfg)}-${state.seed}\n\n`;
+  state.items.forEach((q,i)=>{s+=`問${i+1}［${q.u[0]}年${FNAME[q.u.slice(1)]}・${q.topic}］\n${strip(q.q)}\n`;
+    if(q.kind==='choice')s+=q.choices.map((c,k)=>`  ${KANA[k]} ${c}`).join('\n')+'\n';
+    s+=`答え（　　　　）${q.kind==='num'?q.unit:''}\n\n`});
+  s+='――――― 解答・解説 ―――――\n';
+  state.items.forEach((q,i)=>{s+=`問${i+1}　${ansText(q)}\n　${strip(q.ex).replace(/\n/g,'\n　')}\n`});
+  return s;
+}
+$('#keyToggle').onclick=()=>{state.key=!state.key;$('#keyToggle').setAttribute('aria-pressed',String(state.key));
+  $('#keyToggle').textContent=state.key?'解答をかくす':'解答を表示';renderSheet()};
+$('#copyText').onclick=()=>copy(sheetText(),'問題と解答をコピーしました');
+$('#codeCopy').onclick=()=>copy($('#codeOut').textContent,'セットコードをコピーしました');
+$('#printBtn').onclick=()=>window.print();
+try{if(window.self===window.top)$('#printBtn').hidden=false}catch(e){}
+
+function copy(text,msg){
+  const fallback=()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+    let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();toast(ok?msg:'コピーできませんでした。テキストを選択してコピーしてください')};
+  try{navigator.clipboard.writeText(text).then(()=>toast(msg),fallback)}catch(e){fallback()}
+}
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200)}
+
+$('#codeLoad').onclick=()=>{const p=parseCode($('#codeIn').value);const msg=$('#codeMsg');
+  if(!p){msg.textContent='コードの形が正しくありません。「FFF2210-K7Q3XZ」のような形で入力してください。';return}
+  state.cfg=p.cfg;state.seed=p.seed;renderMatrix();renderSegs();regen();$('#codeIn').value='';
+  msg.textContent='コードの問題セットを読み込みました。';};
+$('#codeIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('#codeLoad').click()});
+
+/* ---------- タブ ---------- */
+function setTab(t){state.tab=t;const s=t==='solve';
+  $('#tabSolve').setAttribute('aria-selected',String(s));$('#tabPrint').setAttribute('aria-selected',String(!s));
+  $('#solve').hidden=!s;$('#sheet').hidden=s;$('#toolsSolve').hidden=!s;$('#toolsPrint').hidden=s;save()}
+$('#tabSolve').onclick=()=>setTab('solve');$('#tabPrint').onclick=()=>setTab('print');
+
+/* ---------- 起動 ---------- */
+$('#stats').textContent=`計算 ${GENS.length} パターン・知識 ${BANK.length} 問`;
+const saved=load(),p=saved&&parseCode(saved.code);
+if(p){state.cfg=p.cfg;state.seed=p.seed}else state.seed=newSeed();
+renderMatrix();renderSegs();regen();
+setTab(saved&&saved.tab==='print'?'print':'solve');
+})();
+</script>
+
+</body>
+</html>

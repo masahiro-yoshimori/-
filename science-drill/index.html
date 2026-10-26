@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>中学理科 図解ドリル</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Kaku+Gothic+New:wght@700;900&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 左に出題設定パネル、右に方眼紙風の演習プリント。カードは幅に応じて1〜2列 */
+:root{
+  --bg:#e9eef3; --paper:#ffffff; --ink:#1c2836; --muted:#5a6878; --line:#cdd6e0;
+  --grid:#e1e8f0; --grid2:#bccada; --accent:#22508c; --accent-ink:#ffffff; --pen:#c8322b;
+  --water:#d3e8f6; --tape:#f6efcf; --metal:#7c8794; --face1:#dfe7f0; --face2:#f1f5f9; --face3:#c6d3e1;
+  --phys:#2c6cb8; --chem:#c2601a; --bio:#33843a; --earth:#76569c;
+  --f-display:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --paper:#192029; --ink:#e2e8ee; --muted:#98a5b3; --line:#2d3743;
+  --grid:#232d38; --grid2:#3a4757; --accent:#7fb0ef; --accent-ink:#0d1520; --pen:#ff7b70;
+  --water:#1b3a54; --tape:#3d3826; --metal:#8b96a3; --face1:#2a3542; --face2:#33404f; --face3:#212a35;
+  --phys:#6ea8ec; --chem:#ec9a5c; --bio:#78c47c; --earth:#b496db; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --paper:#192029; --ink:#e2e8ee; --muted:#98a5b3; --line:#2d3743;
+  --grid:#232d38; --grid2:#3a4757; --accent:#7fb0ef; --accent-ink:#0d1520; --pen:#ff7b70;
+  --water:#1b3a54; --tape:#3d3826; --metal:#8b96a3; --face1:#2a3542; --face2:#33404f; --face3:#212a35;
+  --phys:#6ea8ec; --chem:#ec9a5c; --bio:#78c47c; --earth:#b496db; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.75;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.app{display:grid;grid-template-columns:290px minmax(0,1fr);gap:24px;max-width:1360px;margin:0 auto;align-items:start}
+@media (max-width:900px){.app{grid-template-columns:minmax(0,1fr)}}
+
+/* panel */
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:18px;position:sticky;top:max(16px,env(safe-area-inset-top,0px))}
+@media (max-width:900px){.panel{position:static}}
+.brand h1{font-family:var(--f-display);font-weight:900;font-size:22px;line-height:1.3;margin:0;letter-spacing:.02em}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+.panel h2{font-size:12px;letter-spacing:.12em;color:var(--muted);margin:0 0 8px;font-weight:700}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.quick button,.btn-sub{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:6px;padding:3px 10px;cursor:pointer}
+.quick button:hover,.btn-sub:hover{border-color:var(--accent);color:var(--accent)}
+fieldset{border:0;margin:0 0 8px;padding:0}
+legend{font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;padding:0;margin-bottom:2px}
+legend::before{content:"";width:10px;height:10px;border-radius:2px;background:var(--fc)}
+.unit-opt{display:flex;align-items:center;gap:8px;font-size:14px;padding:2px 0;cursor:pointer}
+.unit-opt input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.unit-opt .gr{margin-left:auto;font-size:11px;color:var(--muted);font-family:var(--f-mono)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row label{font-size:13px;color:var(--muted)}
+select,input[type=number]{font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+input[type=number]{width:120px;font-family:var(--f-mono)}
+.btn-main{font:inherit;font-weight:700;font-size:15px;width:100%;padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn-main:hover{filter:brightness(1.08)}
+.switch{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.switch input{accent-color:var(--pen);width:16px;height:16px;margin:0}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:12px;color:var(--muted);margin:0;line-height:1.6}
+
+/* sheet */
+.sheet{min-width:0}
+.sheet-head{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:end;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:18px}
+.sheet-head h2{font-family:var(--f-display);font-weight:700;font-size:24px;margin:0;text-wrap:balance}
+.sheet-meta{font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+.sheet-meta b{font-family:var(--f-mono);color:var(--ink);font-weight:500}
+.namebox{font-size:13px;color:var(--muted);display:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:18px;align-items:start}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px 18px 14px;min-width:0;display:grid;gap:10px}
+.card-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.no{font-family:var(--f-display);font-weight:900;font-size:20px;line-height:1}
+.chip{font-size:12px;font-weight:700;color:var(--fc);border:1.5px solid var(--fc);border-radius:4px;padding:0 6px;line-height:1.6}
+.unit-name{font-weight:700;font-size:14px}
+.grade{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.regen{margin-left:auto}
+.lead{margin:0}
+.figwrap{border:1px solid var(--line);border-radius:6px;padding:8px;overflow-x:auto;background:var(--paper)}
+.fig{display:block;width:100%;max-width:440px;height:auto;margin:0 auto}
+.qs,.as{margin:0;padding:0;list-style:none;counter-reset:q;display:grid;gap:6px}
+.qs li,.as li{counter-increment:q;padding-left:2.4em;position:relative}
+.qs li::before,.as li::before{content:"(" counter(q) ")";position:absolute;left:0;font-family:var(--f-mono);font-size:13px;top:.15em;color:var(--muted)}
+.ans{border-top:1px dashed var(--line);padding-top:8px}
+.ans summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--pen);list-style:none;display:inline-flex;align-items:center;gap:6px}
+.ans summary::-webkit-details-marker{display:none}
+.ans summary::before{content:"▶";font-size:10px;transition:transform .15s}
+.ans[open] summary::before{transform:rotate(90deg)}
+.ans-body{display:grid;gap:10px;margin-top:8px}
+.as .a{color:var(--pen);font-weight:700}
+.as .ex{display:block;color:var(--muted);font-size:13.5px;line-height:1.7}
+.note{font-size:13px;color:var(--muted)}
+table.mini{border-collapse:collapse;font-size:13px;margin:2px 0}
+table.mini th,table.mini td{border:1px solid var(--line);padding:2px 8px;text-align:center;font-variant-numeric:tabular-nums}
+table.mini th{font-weight:700;background:var(--face2)}
+.tblwrap{overflow-x:auto}
+.empty{padding:40px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* SVG figure classes */
+.fig text{font-family:var(--f-body);fill:var(--ink);font-size:12px}
+.fig .tm{fill:var(--muted);font-size:10.5px}
+.fig .tp{fill:var(--pen);font-weight:700}
+.fig .tb{font-weight:700;font-size:13px}
+.s{stroke:var(--ink);stroke-width:1.6;fill:none}
+.sf{stroke:var(--ink);stroke-width:1.6;fill:var(--paper)}
+.th{stroke:var(--ink);stroke-width:1;fill:none}
+.bold{stroke:var(--ink);stroke-width:4;fill:none}
+.g{stroke:var(--grid);stroke-width:.7}
+.g2{stroke:var(--grid2);stroke-width:.9}
+.dash{stroke-dasharray:4 3}
+.ray{stroke:var(--accent);stroke-width:1.5;fill:none}
+.pen{stroke:var(--pen);stroke-width:2;fill:none}
+.water{fill:var(--water);stroke:none}
+.fi{fill:var(--ink);stroke:none}
+.fp{fill:var(--pen);stroke:none}
+.fa{fill:var(--accent);stroke:none}
+.tape{fill:var(--tape);stroke:var(--ink);stroke-width:1}
+.metal{fill:var(--metal);stroke:var(--ink);stroke-width:1}
+.f1{fill:var(--face1);stroke:var(--ink);stroke-width:1.4}
+.f2{fill:var(--face2);stroke:var(--ink);stroke-width:1.4}
+.f3{fill:var(--face3);stroke:var(--ink);stroke-width:1.4}
+.lensf{fill:var(--water);stroke:var(--ink);stroke-width:1.4}
+.c-k{stroke:var(--chem);stroke-width:2.2;fill:none}
+.c-n{stroke:var(--phys);stroke-width:2.2;fill:none}
+
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  .panel,.regen{display:none!important}
+  .app{display:block}
+  .namebox{display:block}
+  .card{break-inside:avoid;border-color:#999}
+  .cards{grid-template-columns:1fr 1fr;gap:10px}
+  body:not(.print-ans) .ans{display:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink)"/></marker>
+    <marker id="ahp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--pen)"/></marker>
+    <marker id="aha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"/></marker>
+  </defs>
+</svg>
+
+<div class="app">
+  <aside class="panel" aria-label="出題設定">
+    <div class="brand">
+      <h1>中学理科 図解ドリル</h1>
+      <p>単元を選ぶと、図つきの演習問題を数値を変えて何度でも作れます。</p>
+    </div>
+    <section>
+      <h2>出題する単元</h2>
+      <div class="quick">
+        <button type="button" data-grade="1">中1</button>
+        <button type="button" data-grade="2">中2</button>
+        <button type="button" data-grade="3">中3</button>
+        <button type="button" data-sel="all">すべて</button>
+        <button type="button" data-sel="none">解除</button>
+      </div>
+      <div id="unit-list"></div>
+    </section>
+    <section style="display:grid;gap:10px">
+      <h2>プリント</h2>
+      <div class="row">
+        <label for="count">問題数</label>
+        <select id="count">
+          <option>2</option><option>4</option><option selected>6</option><option>8</option><option>10</option><option>12</option>
+        </select>
+      </div>
+      <button type="button" class="btn-main" id="gen">新しいプリントを作る</button>
+      <div class="row">
+        <label for="seed">シード</label>
+        <input type="number" id="seed" min="1" max="999999" inputmode="numeric">
+        <button type="button" class="btn-sub" id="apply">再現</button>
+      </div>
+      <p class="hint">同じシードと単元・問題数なら、同じプリントをもう一度作れます。</p>
+      <label class="switch"><input type="checkbox" id="showans"> 解答・解説をすべて開く</label>
+      <button type="button" class="btn-sub" id="print" hidden>印刷する</button>
+    </section>
+  </aside>
+
+  <main class="sheet">
+    <div class="sheet-head">
+      <h2 id="sheet-title">理科 演習プリント</h2>
+      <div class="sheet-meta">
+        <span>シード <b id="m-seed">-</b></span>
+        <span><b id="m-count">-</b> 問</span>
+        <span class="namebox">年　　組　　番　名前＿＿＿＿＿＿＿＿＿＿</span>
+      </div>
+    </div>
+    <div class="cards" id="cards"></div>
+  </main>
+</div>
+
+<script>
+/* ---------- 乱数・書式 ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let rnd=Math.random;
+let clipN=0;
+const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+const pick=a=>a[Math.floor(rnd()*a.length)];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function f(x,d=2){const v=Math.round(x*10**d)/10**d;return String(Object.is(v,-0)?0:v)}
+const f1=x=>{const v=Math.round(x*10)/10;return v.toFixed(1)}; // 小数第1位まで必ず表示
+const n=x=>Math.round(x*10)/10;
+
+/* ---------- SVG 部品 ---------- */
+const L=(x1,y1,x2,y2,c='s',ex='')=>`<line x1="${n(x1)}" y1="${n(y1)}" x2="${n(x2)}" y2="${n(y2)}" class="${c}" ${ex}/>`;
+const Rc=(x,y,w,h,c='s',ex='')=>`<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" class="${c}" ${ex}/>`;
+const C=(cx,cy,r,c='s')=>`<circle cx="${n(cx)}" cy="${n(cy)}" r="${r}" class="${c}"/>`;
+const T=(x,y,s,o={})=>`<text x="${n(x)}" y="${n(y)}" text-anchor="${o.a||'middle'}"${o.c?` class="${o.c}"`:''}${o.size?` style="font-size:${o.size}px"`:''}>${s}</text>`;
+const P=(d,c='s',ex='')=>`<path d="${d}" class="${c}" ${ex}/>`;
+const svg=(w,h,body,label)=>`<svg viewBox="0 0 ${w} ${h}" class="fig" role="img" aria-label="${label}">${body}</svg>`;
+function smooth(pts){
+  pts=pts.map(p=>[n(p[0]),n(p[1])]);
+  let d=`M${pts[0][0]},${pts[0][1]}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;
+    const c1=[n(p1[0]+(p2[0]-p0[0])/6),n(p1[1]+(p2[1]-p0[1])/6)],c2=[n(p2[0]-(p3[0]-p1[0])/6),n(p2[1]-(p3[1]-p1[1])/6)];
+    d+=` C${c1} ${c2} ${p2}`;
+  }
+  return d;
+}
+/* 方眼グラフ */
+function graph(o){
+  const xmin=o.xmin||0,ymin=o.ymin||0;
+  const X=v=>o.x+(v-xmin)/(o.xmax-xmin)*o.w, Y=v=>o.y+o.h-(v-ymin)/(o.ymax-ymin)*o.h;
+  let s='';const eps=1e-9;
+  if(o.xm)for(let v=xmin;v<=o.xmax+eps;v+=o.xm)s+=L(X(v),o.y,X(v),o.y+o.h,'g');
+  if(o.ym)for(let v=ymin;v<=o.ymax+eps;v+=o.ym)s+=L(o.x,Y(v),o.x+o.w,Y(v),'g');
+  for(let v=xmin;v<=o.xmax+eps;v+=o.xs){s+=L(X(v),o.y,X(v),o.y+o.h,'g2');s+=T(X(v),o.y+o.h+14,f(v,2),{c:'tm'})}
+  for(let v=ymin;v<=o.ymax+eps;v+=o.ys){s+=L(o.x,Y(v),o.x+o.w,Y(v),'g2');s+=T(o.x-5,Y(v)+4,f(v,2),{c:'tm',a:'end'})}
+  s+=L(o.x,o.y+o.h,o.x+o.w,o.y+o.h)+L(o.x,o.y,o.x,o.y+o.h);
+  s+=T(o.x+o.w/2,o.y+o.h+30,o.xl);
+  s+=T(o.x-4,o.y-8,o.yl,{a:'start'});
+  return {s,X,Y};
+}
+/* 回路部品 */
+function battery(x,y,label){ // 横向きの導線上、xが中心
+  return L(x-6,y-16,x-6,y+16)+L(x+6,y-8,x+6,y+8,'bold')+T(x-14,y-8,'+',{size:13})+T(x+16,y-8,'−',{size:13})+T(x,y+32,label);
+}
+function meter(x,y,ch){return C(x,y,13,'sf')+T(x,y+5,ch,{c:'tb'})}
+function resH(x,y,w,name,val){return Rc(x,y-8,w,16,'sf')+T(x+w/2,y-14,name)+T(x+w/2,y+26,val,{c:'tb'})}
+
+/* ---------- 問題生成 ---------- */
+/* 直列回路 */
+function genSeries(){
+  const R1=pick([5,10,15,20,30]),R2=pick([5,10,15,20,30,40].filter(r=>r!==R1)),Rt=R1+R2;
+  const Is=[0.1,0.15,0.2,0.25,0.3,0.4,0.5,0.6].filter(i=>{const v=i*Rt;return v<=15&&v>=1.5&&Math.abs(v*10-Math.round(v*10))<1e-9});
+  const I=Is.length?pick(Is):0.1,V=I*Rt;
+  const unknown=rnd()<0.5;
+  const w=340,h=210,lx=40,rx=300,ty=55,by=160;
+  let b=L(lx,ty,95,ty)+resH(95,ty,50,'抵抗器X',R1+'Ω')+L(145,ty,195,ty)+resH(195,ty,50,'抵抗器Y',unknown?'？Ω':R2+'Ω')+L(245,ty,rx,ty);
+  b+=L(rx,ty,rx,by)+L(rx,by,176,by)+L(164,by,lx,by)+battery(170,by,`電源 ${f(V,1)}V`);
+  b+=L(lx,ty,lx,93)+meter(lx,106,'A')+L(lx,119,lx,by);
+  const fig=svg(w,h,b,'直列回路の回路図');
+  if(!unknown)return{lead:`図のように、${R1}Ωの抵抗器Xと${R2}Ωの抵抗器Yを直列につなぎ、電源の電圧を${f(V,1)}Vにした。`,fig,qs:[
+    {q:'回路全体の抵抗は何Ωか。',a:`${Rt} Ω`,ex:`直列回路の全体の抵抗は各抵抗の和。${R1}＋${R2}＝${Rt}Ω`},
+    {q:'電流計は何Aを示すか。',a:`${f(I)} A`,ex:`I＝V÷R＝${f(V,1)}÷${Rt}＝${f(I)}A（＝${f(I*1000)}mA）`},
+    {q:'抵抗器Xに加わる電圧は何Vか。',a:`${f(I*R1)} V`,ex:`直列回路では電流の大きさはどこも同じ。V＝R×I＝${R1}×${f(I)}＝${f(I*R1)}V`},
+    {q:'抵抗器Yに加わる電圧は何Vか。',a:`${f(I*R2)} V`,ex:`各抵抗器の電圧の和が電源の電圧になる。${f(V,1)}−${f(I*R1)}＝${f(I*R2)}V`}]};
+  return{lead:`図のように、${R1}Ωの抵抗器Xと抵抗の大きさがわからない抵抗器Yを直列につないだ。電源の電圧を${f(V,1)}Vにすると、電流計は${f(I*1000)}mAを示した。`,fig,qs:[
+    {q:'回路全体の抵抗は何Ωか。',a:`${Rt} Ω`,ex:`${f(I*1000)}mA＝${f(I)}A。R＝V÷I＝${f(V,1)}÷${f(I)}＝${Rt}Ω`},
+    {q:'抵抗器Xに加わる電圧は何Vか。',a:`${f(I*R1)} V`,ex:`V＝R×I＝${R1}×${f(I)}＝${f(I*R1)}V`},
+    {q:'抵抗器Yの抵抗は何Ωか。',a:`${R2} Ω`,ex:`全体の抵抗から抵抗器Xの分を引く。${Rt}−${R1}＝${R2}Ω（またはYの電圧${f(I*R2)}V÷${f(I)}A）`}]};
+}
+/* 並列回路 */
+function genParallel(){
+  let R1,R2,V,tries=0;
+  do{[R1,R2]=pick([[10,15],[20,30],[6,3],[10,10],[12,6],[30,15],[60,30],[20,20],[10,40],[15,30]]);if(rnd()<.5)[R1,R2]=[R2,R1];V=pick([3,6,9,12]);tries++}
+  while(tries<50&&![R1,R2].every(r=>Math.abs(V*100/r-Math.round(V*100/r))<1e-9));
+  const I1=V/R1,I2=V/R2,I=I1+I2,Rt=R1*R2/(R1+R2);
+  const lx=40,rx=300,nl=85,nr=255,y1=48,y2=112,by=178;
+  let b=L(nl,y1,145,y1)+resH(145,y1,50,'抵抗器X',R1+'Ω')+L(195,y1,nr,y1);
+  b+=L(nl,y2,145,y2)+resH(145,y2,50,'抵抗器Y',R2+'Ω')+L(195,y2,nr,y2);
+  b+=L(nl,y1,nl,y2)+L(nr,y1,nr,y2)+C(nl,y2,2.6,'fi')+C(nr,y2,2.6,'fi');
+  b+=L(nl,y2,lx,y2)+L(lx,y2,lx,by)+L(nr,y2,rx,y2)+L(rx,y2,rx,by);
+  b+=L(lx,by,92,by)+meter(105,by,'A')+L(118,by,164,by)+battery(170,by,`電源 ${V}V`)+L(176,by,rx,by);
+  const fig=svg(340,228,b,'並列回路の回路図');
+  return{lead:`図のように、${R1}Ωの抵抗器Xと${R2}Ωの抵抗器Yを並列につなぎ、電源の電圧を${V}Vにした。`,fig,qs:[
+    {q:'抵抗器Xに加わる電圧は何Vか。',a:`${V} V`,ex:'並列回路では、それぞれの抵抗器に電源と同じ電圧が加わる。'},
+    {q:'抵抗器Xを流れる電流は何Aか。',a:`${f(I1,3)} A`,ex:`I＝V÷R＝${V}÷${R1}＝${f(I1,3)}A`},
+    {q:'電流計は何Aを示すか。',a:`${f(I,3)} A`,ex:`抵抗器Yには${V}÷${R2}＝${f(I2,3)}A。並列回路では枝分かれした電流の和が全体の電流。${f(I1,3)}＋${f(I2,3)}＝${f(I,3)}A`},
+    {q:'回路全体の抵抗は何Ωか。',a:`${f(Rt,2)} Ω`,ex:`R＝V÷I＝${V}÷${f(I,3)}＝${f(Rt,2)}Ω。並列にすると全体の抵抗は、どちらの抵抗器よりも小さくなる。`}]};
+}
+/* 電力と発熱 */
+function genPower(){
+  const V=pick([3,6,9,12]),R=pick([2,3,4,6].filter(r=>V%r===0||(V/r)*2%1===0)),I=V/R,Pw=V*I,t=pick([2,3,5,10]);
+  const water=pick([100,150,200]);
+  let b=Rc(20,40,70,46,'sf',`rx="4"`)+T(55,60,'電源装置')+T(55,77,`${V}V`,{c:'tb'});
+  b+=L(90,52,190,52)+L(190,52,190,110)+L(90,74,170,74)+L(170,74,170,110);
+  b+=Rc(130,100,110,95,'water')+P('M128,82 L128,196 L242,196 L242,82','s');
+  b+=P('M170,110 L170,150 l4,16 l4,-16 l4,16 l4,-16 l4,16 L190,110','s');
+  b+=Rc(214,60,8,120,'sf',`rx="4"`)+C(218,176,6,'fp')+L(218,120,218,172,'pen');
+  b+=T(260,72,'温度計',{a:'start',c:'tm'})+T(185,206,`水 ${water}g`,{c:'tm'})+T(122,170,'電熱線',{a:'end',c:'tm'});
+  const fig=svg(340,220,b,'電熱線で水をあたためる装置');
+  const R2=R*2;
+  return{lead:`図のように、抵抗が${R}Ωの電熱線を${water}gの水に入れ、${V}Vの電圧を加えて${t}分間電流を流した。`,fig,qs:[
+    {q:'電熱線を流れる電流は何Aか。',a:`${f(I)} A`,ex:`I＝V÷R＝${V}÷${R}＝${f(I)}A`},
+    {q:'電熱線の電力は何Wか。',a:`${f(Pw)} W`,ex:`電力〔W〕＝電圧〔V〕×電流〔A〕＝${V}×${f(I)}＝${f(Pw)}W`},
+    {q:`${t}分間に電熱線から発生した熱量は何Jか。`,a:`${f(Pw*t*60)} J`,ex:`熱量〔J〕＝電力〔W〕×時間〔s〕。${t}分＝${t*60}秒なので ${f(Pw)}×${t*60}＝${f(Pw*t*60)}J`},
+    {q:`同じ電圧で、抵抗が${R2}Ωの電熱線にかえると、電力は何倍になるか。`,a:'0.5 倍',ex:`電流は${V}÷${R2}＝${f(V/R2)}Aになり、電力は${V}×${f(V/R2)}＝${f(V*V/R2)}W。抵抗が2倍になると電力は半分になる。`}]};
+}
+/* ばね */
+function genSpring(){
+  const k=pick([2,3,4,5,6,8]),Fmax=1.0,ymax=Math.ceil(k*Fmax/2)*2+(k%2?0:0),ys=ymax<=6?1:2;
+  const g=graph({x:150,y:24,w:200,h:170,xmax:1.0,ymax,xs:0.2,ys,xm:0.1,ym:ys/2,xl:'ばねを引く力〔N〕',yl:'ばねののび〔cm〕'});
+  let b=g.s;
+  [0.2,0.4,0.6,0.8,1.0].forEach(F=>b+=C(g.X(F),g.Y(k*F),3,'fi'));
+  b+=L(g.X(0),g.Y(0),g.X(1),g.Y(k),'ray');
+  // ばねの絵
+  b+=L(14,16,86,16,'bold');
+  let zz='M50,16 L50,30';for(let i=0;i<8;i++)zz+=` L${i%2?42:58},${36+i*9}`;zz+=' L50,108 L50,118';
+  b+=P(zz,'s')+Rc(34,118,32,30,'metal',`rx="3"`)+T(50,168,'おもり',{c:'tm'});
+  const fig=svg(370,236,b,'ばねを引く力とばねののびのグラフ');
+  const F2=pick([0.3,0.5,0.7,0.9]),F3=pick([1.2,1.5,2.0,2.5]);
+  return{lead:'ばねにいろいろな力を加え、ばねののびを調べたところ、グラフのようになった。ただし、100gの物体にはたらく重力の大きさを1Nとする。',fig,qs:[
+    {q:`このばねを${f(F2)}Nの力で引くと、何cmのびるか。`,a:`${f(k*F2)} cm`,ex:`グラフから1Nで${k}cmのびる。のびは力に比例するので ${k}×${f(F2)}＝${f(k*F2)}cm`},
+    {q:`このばねを${f(k*F3)}cmのばすには、質量何gのおもりをつるせばよいか。`,a:`${f(F3*100)} g`,ex:`必要な力は ${f(k*F3)}÷${k}＝${f(F3)}N。1N＝100gなので ${f(F3*100)}g`},
+    {q:'ばねののびがばねを引く力に比例する関係を何というか。',a:'フックの法則',ex:'グラフが原点を通る直線になることから、比例していることがわかる。'}]};
+}
+/* 圧力 */
+function genPressure(){
+  const dims=shuffle([2,4,5,8,10]).slice(0,3);const [a,b2,c]=dims; // a:高さ b2:奥行き c:横
+  const m=pick([300,400,600,800,1000,1200]),N=m/100;
+  const s=Math.min(190/(c+0.6*b2),150/(a+0.45*b2)),W=c*s,H=a*s,D=b2*s,ox=D*0.6,oy=D*0.45,x0=50,y0=24;
+  let bd=`<polygon points="${n(x0)},${n(y0+oy)} ${n(x0+ox)},${n(y0)} ${n(x0+W+ox)},${n(y0)} ${n(x0+W)},${n(y0+oy)}" class="f2"/>`;
+  bd+=`<polygon points="${n(x0+W)},${n(y0+oy)} ${n(x0+W+ox)},${n(y0)} ${n(x0+W+ox)},${n(y0+H)} ${n(x0+W)},${n(y0+oy+H)}" class="f3"/>`;
+  bd+=Rc(x0,y0+oy,W,H,'f1');
+  bd+=T(x0+W/2,y0+oy+H/2+5,'A',{c:'tb'})+T(x0+ox/2+W/2,y0+oy/2+5,'B',{c:'tb'})+T(x0+W+ox/2,y0+oy/2+H/2+5,'C',{c:'tb'});
+  bd+=T(x0+W/2,y0+oy+H+16,`${c}cm`)+T(x0-6,y0+oy+H/2+4,`${a}cm`,{a:'end'})+T(x0+W+ox/2+6,y0+oy+H-oy/2+14,`${b2}cm`,{a:'start'});
+  const fig=svg(320,Math.ceil(y0+oy+H+30),bd,'直方体の物体');
+  const area={A:c*a,B:c*b2,C:b2*a},faces=['A','B','C'],q=pick(faces);
+  const pr=x=>N/(area[x]*1e-4);
+  const sorted=faces.slice().sort((p,q2)=>area[p]-area[q2]),mx=sorted[0],mn=sorted[2];
+  return{lead:`図のような質量${m}gの直方体の物体がある。100gの物体にはたらく重力の大きさを1Nとする。`,fig,qs:[
+    {q:'この物体にはたらく重力の大きさは何Nか。',a:`${f(N)} N`,ex:`${m}÷100＝${f(N)}N`},
+    {q:`${q}面を下にしてスポンジの上に置いたとき、スポンジが受ける圧力は何Paか。`,a:`${f(pr(q),1)} Pa`,ex:`${q}面の面積は${area[q]}cm²＝${f(area[q]*1e-4,4)}m²。圧力〔Pa〕＝力〔N〕÷面積〔m²〕＝${f(N)}÷${f(area[q]*1e-4,4)}＝${f(pr(q),1)}Pa`},
+    {q:'スポンジのへこみ方が最も大きくなるのは、どの面を下にしたときか。',a:`${mx}面`,ex:`同じ力なら、ふれ合う面積が小さいほど圧力は大きい。${mx}面の面積が${area[mx]}cm²で最も小さい。`},
+    {q:'圧力が最も大きいときは、最も小さいときの何倍か。',a:`${f(area[mn]/area[mx],2)} 倍`,ex:`圧力は面積に反比例する。${area[mn]}÷${area[mx]}＝${f(area[mn]/area[mx],2)}倍`}]};
+}
+/* 浮力 */
+function genBuoy(){
+  const W=ri(12,40)/10,F=ri(2,Math.min(10,Math.round(W*10)-4))/10,Ww=W-F;
+  const scale=(x,y,val,hook)=>{
+    let s=Rc(x-10,y,20,64,'sf',`rx="3"`);
+    for(let i=0;i<=8;i++)s+=L(x-10,y+6+i*6.5,x-4,y+6+i*6.5,'th');
+    s+=L(x-4,y+12+val*12,x+6,y+12+val*12,'pen')+L(x,y-14,x,y)+L(x,y+64,x,hook);
+    return s;
+  };
+  let b=L(10,10,330,10,'bold');
+  b+=scale(80,24,W/4,128)+Rc(60,128,40,34,'metal',`rx="2"`)+T(80,190,'空気中',{c:'tm'})+T(100,58,`${f1(W)}N`,{a:'start',c:'tp'});
+  b+=Rc(196,128,108,80,'water')+P('M194,104 L194,210 L306,210 L306,104','s');
+  b+=scale(250,24,Ww/4,150)+Rc(230,150,40,34,'metal',`rx="2"`)+T(270,58,`${f1(Ww)}N`,{a:'start',c:'tp'})+T(250,226,'水中',{c:'tm'});
+  const fig=svg(340,236,b,'ばねばかりにつるした物体を水に入れる実験');
+  return{lead:`ばねばかりに物体をつるすと、空気中では${f1(W)}Nを示した。この物体を全部水に沈めると、ばねばかりは${f1(Ww)}Nを示した。`,fig,qs:[
+    {q:'水中で物体にはたらく浮力の大きさは何Nか。',a:`${f1(F)} N`,ex:`浮力＝空気中での値−水中での値＝${f1(W)}−${f1(Ww)}＝${f1(F)}N`},
+    {q:'物体を全部沈めたまま、さらに深いところまで沈めると、ばねばかりの値はどうなるか。',a:'変わらない',ex:'浮力の大きさは水中にある部分の体積で決まり、全部沈めたあとは深さによらない。'},
+    {q:'物体の半分だけを水に沈めると、ばねばかりは何Nを示すか。',a:`${f(W-F/2,2)} N`,ex:`水中の体積が半分なので浮力も半分の${f(F/2,2)}N。${f1(W)}−${f(F/2,2)}＝${f(W-F/2,2)}N`},
+    {q:'【発展】水1cm³の質量を1gとすると、この物体の体積は何cm³か。',a:`${f(F*100)} cm³`,ex:`浮力は物体が押しのけた水にはたらく重力と等しい。${f1(F)}N＝${f(F*100)}gの水 → ${f(F*100)}cm³`}]};
+}
+/* 凸レンズ */
+function genLens(){
+  const real=rnd()<0.72;
+  const [fo,a]=real?pick([[2,3],[2,4],[2,6],[3,6],[4,8]]):pick([[2,1],[4,2],[3,2]]);
+  const u=pick([2,3,5]),h=real?2:1,bb=a*fo/(a-fo),mag=Math.abs(bb/a),hi=-h*bb/a;
+  const g=18,cx=182,cy=110,px=x=>cx+x*g,py=y=>cy-y*g;
+  const base=()=>{
+    let s='';
+    for(let i=-9;i<=9;i++)s+=L(px(i),py(5),px(i),py(-5),'g');
+    for(let j=-5;j<=5;j++)s+=L(px(-9),py(j),px(9),py(j),'g');
+    s+=L(px(-9),cy,px(9),cy,'th')+`<ellipse cx="${cx}" cy="${cy}" rx="6" ry="${4.6*g}" class="lensf"/>`;
+    s+=C(px(-fo),cy,3,'fi')+C(px(fo),cy,3,'fi')+T(px(-fo),cy+14,'F')+T(px(fo),cy+14,'F');
+    s+=L(px(-a),cy,px(-a),py(h)+2,'s',`stroke-width="2.4" marker-end="url(#ah)"`)+T(px(-a),py(h)-6,'物体',{c:'tm'});
+    s+=T(px(9),py(-5)+16,`1目盛り＝${u}cm`,{a:'end',c:'tm'});
+    return s;
+  };
+  const ext=(p,q)=>{const dx=q[0]-p[0],dy=q[1]-p[1];let t=Infinity;
+    if(dx>0)t=Math.min(t,(9-p[0])/dx);if(dx<0)t=Math.min(t,(-9-p[0])/dx);if(dy>0)t=Math.min(t,(5-p[1])/dy);if(dy<0)t=Math.min(t,(-5-p[1])/dy);
+    return[p[0]+dx*t,p[1]+dy*t]};
+  const seg=(p,q,c='ray',ex='')=>L(px(p[0]),py(p[1]),px(q[0]),py(q[1]),c,ex);
+  const fig=svg(364,226,base(),'凸レンズと物体の位置');
+  const O=[-a,h],top=[0,h],e1=ext(top,[fo,0]),e2=ext([0,0],[a,-h]);
+  let ans=base()+seg(O,top)+seg(top,e1)+seg(O,[0,0])+seg([0,0],e2);
+  if(real){
+    const y3=-h*fo/(a-fo);ans+=seg(O,[-fo,0])+seg([-fo,0],[0,y3])+seg([0,y3],[9,y3]);
+    ans+=L(px(bb),cy,px(bb),py(hi)-2,'pen',`stroke-width="2.6" marker-end="url(#ahp)"`)+T(px(bb)-8,py(hi)+14,'像',{a:'end',c:'tp'});
+  }else{
+    ans+=seg(top,ext([fo,0],top),'ray dash')+seg([0,0],ext([a,-h],[0,0]),'ray dash');
+    ans+=L(px(bb),cy,px(bb),py(hi)+2,'pen dash',`stroke-width="2.4" marker-end="url(#ahp)"`)+T(px(bb)-6,py(hi)-6,'像（虚像）',{a:'end',c:'tp'});
+  }
+  const ansFig=svg(364,226,ans,'光の進み方の作図');
+  const lead=`図のように、焦点距離${fo*u}cmの凸レンズの前に物体を置いた。方眼の1目盛りは${u}cmである。`;
+  if(real)return{lead,fig,ansFig,qs:[
+    {q:'物体はレンズから何cmの位置にあるか。',a:`${a*u} cm`,ex:`${a}目盛り×${u}cm＝${a*u}cm`},
+    {q:'スクリーンをレンズの反対側の何cmの位置に置くと、はっきりした像がうつるか。',a:`${f(bb*u)} cm`,ex:`光軸に平行な光は焦点を通り、レンズの中心を通る光は直進する。2本の光が交わる点はレンズから${f(bb)}目盛り＝${f(bb*u)}cm。`},
+    {q:'うつった像の大きさは、物体の何倍か。',a:`${f(mag)} 倍`,ex:`像の高さは${f(Math.abs(hi))}目盛り、物体は${h}目盛り。`+(a===2*fo?'焦点距離の2倍の位置に置くと、同じ大きさの像ができる。':a>2*fo?'焦点距離の2倍より遠いので、物体より小さい像になる。':'焦点と焦点距離の2倍の位置の間なので、物体より大きい像になる。')},
+    {q:'この像の名前と、向きを答えよ。',a:'実像・上下左右が逆向き',ex:'スクリーンにうつる像を実像という。実像は物体と上下左右が逆になる（倒立）。'}]};
+  return{lead,fig,ansFig,qs:[
+    {q:'物体はレンズから何cmの位置にあるか。',a:`${a*u} cm`,ex:`${a}目盛り×${u}cm＝${a*u}cm（焦点より内側）`},
+    {q:'スクリーンをどこに置いても像はうつらなかった。その理由を答えよ。',a:'物体が焦点より内側にあり、レンズを通った光が1点に集まらないから。',ex:'屈折した光は広がっていくので、実像はできない。'},
+    {q:'レンズを通して物体を見たときに見える像を何というか。また、像の向きを答えよ。',a:'虚像・物体と同じ向き',ex:'屈折した光を逆向きにのばした線が交わるところに、正立の虚像が見える。'},
+    {q:'見える像の大きさは物体の何倍か。',a:`${f(mag)} 倍`,ex:`作図すると、像の高さは${f(Math.abs(hi))}目盛りで物体（${h}目盛り）の${f(mag)}倍。虚像は物体より大きく見える。`}]};
+}
+/* 記録タイマー */
+function genTape(){
+  const hz=pick([50,60]),dots=hz/10,acc=rnd()<0.7;
+  const d=acc?pick([0.6,0.8,1.0,1.2,1.5]):0,L0=acc?pick([0.5,0.8,1.0,1.2]):pick([2.0,2.4,3.0,3.5]);
+  const lens=[0,1,2,3,4,5].map(i=>n(L0+i*d)),mx=Math.max(...lens),ymax=Math.ceil(mx+0.5),ys=ymax>6?2:1;
+  const g=graph({x:44,y:24,w:270,h:180,xmax:0.6,ymax,xs:0.1,ys,ym:ys/2,xl:'時間〔s〕',yl:'テープの長さ〔cm〕'});
+  let b=g.s;const sw=g.X(0.1)-g.X(0);
+  lens.forEach((l,i)=>{const x=g.X(i*0.1)+3,y=g.Y(l);b+=Rc(x,y,sw-6,g.Y(0)-y,'tape');
+    for(let k=0;k<dots;k++)b+=C(x+(sw-6)/2,g.Y(0)-(g.Y(0)-y)*k/dots-(k===0?2:0),1.8,'fi');
+    b+=T(x+(sw-6)/2,y-4,f1(l),{c:'tm'})});
+  const fig=svg(330,238,b,'5打点ごとに切ったテープ');
+  const q4=pick([2,3,4]),tot=lens.reduce((s,v)=>s+v,0);
+  return{lead:`台車の運動を、1秒間に${hz}回打点する記録タイマーで記録した。テープを${dots}打点ごとに切って、左から順に台紙にはりつけた。`,fig,qs:[
+    {q:'テープ1本は何秒間の運動を記録したものか。',a:'0.1 秒',ex:`1打点は1/${hz}秒。${dots}打点分なので ${dots}÷${hz}＝0.1秒`},
+    {q:`左から${q4+1}本目のテープを記録した間の、台車の平均の速さは何cm/sか。`,a:`${f(lens[q4]*10)} cm/s`,ex:`速さ＝距離÷時間＝${f1(lens[q4])}÷0.1＝${f(lens[q4]*10)}cm/s`},
+    {q:'0〜0.6秒の間の、台車の平均の速さは何cm/sか。',a:`${f(tot/0.6,1)} cm/s`,ex:`テープの長さの合計は${f(tot,1)}cm。${f(tot,1)}÷0.6＝${f(tot/0.6,1)}cm/s`},
+    {q:'台車はどのような運動をしているか。',a:acc?'速さが一定の割合で増える運動':'等速直線運動',ex:acc?`テープの長さが0.1秒ごとに${f1(d)}cmずつ長くなっているので、速さは一定の割合で増えている（斜面を下る運動など）。`:'テープの長さがすべて同じなので、一定の速さで一直線上を進む等速直線運動である。'}]};
+}
+/* 密度 */
+const SUBST=[['アルミニウム',2.70],['亜鉛',7.13],['鉄',7.87],['銅',8.96],['鉛',11.35],['ガラス',2.50]];
+function genDensity(){
+  const [nm,rho]=pick(SUBST),V1=pick([40,42,45,48,50]),dV=pick([6,8,10,12,15,20]),V2=V1+dV,m=n(rho*dV);
+  const lo=Math.floor((V1-6)/10)*10,hi=Math.ceil((V2+6)/10)*10,pp=Math.min(5,190/(hi-lo));
+  const cyl=(x,v,metal,label)=>{
+    const top=20,Y=val=>top+10+(hi-val)*pp,bot=Y(lo)+6;
+    let s=Rc(x,Y(v),44,bot-Y(v),'water')+P(`M${x},${n(Y(v)-3)} Q${x+22},${n(Y(v)+3)} ${x+44},${n(Y(v)-3)}`,'th');
+    if(metal)s+=Rc(x+12,bot-20,20,16,'metal',`rx="2"`);
+    s+=P(`M${x},${top} L${x},${n(bot)} L${x+44},${n(bot)} L${x+44},${top}`,'s')+L(x-10,bot+4,x+54,bot+4,'s');
+    for(let val=lo;val<=hi;val++){const len=val%10===0?14:val%5===0?10:5;s+=L(x,Y(val),x+len,Y(val),'th');if(val%10===0)s+=T(x-4,Y(val)+4,val,{a:'end',c:'tm'})}
+    s+=T(x+22,bot+22,label,{c:'tm'});return s;
+  };
+  const b=cyl(64,V1,false,'入れる前')+cyl(214,V2,true,'入れた後')+T(150,40,'単位：cm³',{c:'tm'});
+  const hh=Math.ceil(20+10+(hi-lo)*pp+6+30);
+  const fig=svg(320,hh,b,'メスシリンダーの目盛り');
+  const tbl=shuffle([SUBST.find(s=>s[0]===nm),...shuffle(SUBST.filter(s=>s[0]!==nm)).slice(0,3)]);
+  const rows=`<div class="tblwrap"><table class="mini"><tr><th>物質</th>${tbl.map(s=>`<td>${s[0]}</td>`).join('')}</tr><tr><th>密度〔g/cm³〕</th>${tbl.map(s=>`<td>${s[1].toFixed(2)}</td>`).join('')}</tr></table></div>`;
+  return{lead:`質量${f1(m)}gの金属のかたまりを、水を入れたメスシリンダーに静かに沈めた。図は入れる前と後の水面のようすである（1目盛りは1cm³）。`,fig,extra:rows,qs:[
+    {q:'金属の体積は何cm³か。',a:`${dV} cm³`,ex:`目盛りは液面のへこんだ下の面を真横から読む。${V2}−${V1}＝${dV}cm³`},
+    {q:'金属の密度は何g/cm³か。小数第2位まで求めよ。',a:`${(m/dV).toFixed(2)} g/cm³`,ex:`密度＝質量÷体積＝${f1(m)}÷${dV}＝${(m/dV).toFixed(2)}g/cm³`},
+    {q:'表から、この金属は何だと考えられるか。',a:nm,ex:`密度は物質ごとに決まっているので、物質を見分ける手がかりになる。`},
+    {q:'この金属を水銀（密度13.55g/cm³）に入れると、浮くか沈むか。',a:rho<13.55?'浮く':'沈む',ex:'液体より密度が小さい物体は浮き、大きい物体は沈む。'}]};
+}
+/* 濃度 */
+function genConc(){
+  const p=pick([5,8,10,12,15,20,25]),tot=pick([100,200,250,400]),s=tot*p/100,w=tot-s,add=pick([50,100,150,200,300]);
+  const M=pick([150,200,250,300,500]),p2=pick([4,6,8,10,15]);
+  const beaker=(x,label,fill)=>{let t=fill?Rc(x+2,86,86,72,'water'):'';t+=P(`M${x},50 L${x},160 L${x+90},160 L${x+90},50`,'s')+T(x+45,182,label,{c:'tm'});return t};
+  let b=beaker(16,`水 ${w}g`,true)+T(130,118,'＋',{size:22})+P('M150,140 Q180,108 210,140 Z','f2')+T(180,160,`食塩 ${s}g`,{c:'tm'});
+  b+=L(222,118,246,118,'s',`marker-end="url(#ah)"`);
+  b+=P('M254,50 L254,160 L330,160 L330,50','s')+Rc(256,82,72,76,'water')+T(292,182,'食塩水',{c:'tm'});
+  const fig=svg(340,196,b,'食塩を水に溶かすようす');
+  return{lead:`水${w}gに食塩${s}gを溶かして食塩水をつくった。`,fig,qs:[
+    {q:'できた食塩水の質量は何gか。',a:`${tot} g`,ex:`溶液の質量＝溶媒（水）＋溶質（食塩）＝${w}＋${s}＝${tot}g`},
+    {q:'この食塩水の質量パーセント濃度は何%か。',a:`${p} %`,ex:`${s}÷${tot}×100＝${p}%`},
+    {q:`この食塩水に水を${add}g加えると、濃度は何%になるか。小数第1位まで求めよ。`,a:`${f1(s/(tot+add)*100)} %`,ex:`溶質の質量は変わらず${s}g、溶液は${tot+add}g。${s}÷${tot+add}×100＝${f(s/(tot+add)*100,2)}… → ${f1(s/(tot+add)*100)}%`},
+    {q:`${p2}%の食塩水を${M}gつくるには、食塩と水はそれぞれ何g必要か。`,a:`食塩 ${f(M*p2/100)} g、水 ${f(M-M*p2/100)} g`,ex:`食塩＝${M}×${p2}/100＝${f(M*p2/100)}g、水＝${M}−${f(M*p2/100)}＝${f(M-M*p2/100)}g`}]};
+}
+/* 溶解度 */
+const KNO3=[13.3,22.0,31.6,45.6,63.9,85.2,109.2,138,169];
+const NACL=[35.7,35.8,35.9,36.1,36.3,36.7,37.1,37.5,38.0];
+function genSolub(){
+  const T1=pick([50,60,70,80]),T2=pick([10,20,30].filter(t=>t<T1)),Wt=pick([100,200,50]);
+  const S1=KNO3[T1/10],S2=KNO3[T2/10];
+  const g=graph({x:44,y:24,w:270,h:190,xmax:80,ymax:180,xs:10,ys:20,xm:5,ym:10,xl:'水の温度〔℃〕',yl:'100gの水に溶ける質量〔g〕'});
+  let b=g.s+P(smooth(KNO3.map((v,i)=>[g.X(i*10),g.Y(v)])),'c-k')+P(smooth(NACL.map((v,i)=>[g.X(i*10),g.Y(v)])),'c-n');
+  b+=T(g.X(66),g.Y(158),'硝酸カリウム',{a:'end',c:'tb'})+T(g.X(80),g.Y(46),'塩化ナトリウム',{a:'end',c:'tb'});
+  const fig=svg(330,254,b,'溶解度曲線');
+  const cr=(S1-S2)*Wt/100;
+  const extra=`<div class="tblwrap"><table class="mini"><tr><th>温度〔℃〕</th><td>${T2}</td><td>${T1}</td></tr><tr><th>硝酸カリウム〔g〕</th><td>${S2}</td><td>${S1}</td></tr></table></div>`;
+  return{lead:'グラフは、100gの水に溶ける物質の質量と温度の関係を表したものである。必要なら下の表の値を使うこと。',fig,extra,qs:[
+    {q:`${T1}℃の水${Wt}gに、硝酸カリウムは最大何gまで溶けるか。`,a:`${f(S1*Wt/100,1)} g`,ex:`100gの水に${S1}g溶けるので、${Wt}gでは ${S1}×${Wt}/100＝${f(S1*Wt/100,1)}g`},
+    {q:`${T1}℃の水${Wt}gに硝酸カリウムを溶けるだけ溶かし、${T2}℃まで冷やした。出てくる結晶は何gか。`,a:`${f(cr,1)} g`,ex:`100gあたり ${S1}−${S2}＝${f(S1-S2,1)}g出る。水${Wt}gなので ${f(S1-S2,1)}×${Wt}/100＝${f(cr,1)}g`},
+    {q:'このように、温度による溶け方のちがいを利用して結晶をとり出す方法を何というか。',a:'再結晶',ex:'一度溶かした物質を、冷やしたり水を蒸発させたりして再び結晶としてとり出す。'},
+    {q:'塩化ナトリウムの水溶液から結晶を多くとり出すには、どうすればよいか。',a:'水を蒸発させる',ex:'塩化ナトリウムは温度による溶解度の変化が小さいので、冷やしても結晶はほとんど出てこない。'}]};
+}
+/* 酸化 */
+function genOxid(){
+  const cu=rnd()<0.5,mr=cu?4:3,or=cu?1:2,nm=cu?'銅':'マグネシウム',ox=cu?'酸化銅':'酸化マグネシウム';
+  const ymax=cu?1.6:2.0,ys=cu?0.2:0.4;
+  const g=graph({x:48,y:24,w:250,h:180,xmax:1.2,ymax,xs:0.2,ys,xm:0.1,ym:ys/2,xl:`${nm}の質量〔g〕`,yl:`できた${ox}の質量〔g〕`});
+  let b=g.s+L(g.X(0),g.Y(0),g.X(1.2),g.Y(1.2*(mr+or)/mr),'ray');
+  [0.3,0.6,0.9,1.2].forEach(x=>{const y=x*(mr+or)/mr;b+=C(g.X(x),g.Y(y),3.2,'fi')});
+  const fig=svg(320,244,b,`${nm}の質量と${ox}の質量のグラフ`);
+  const X=cu?pick([1.6,2.0,2.4,3.2,4.0]):pick([0.9,1.5,2.1,2.4,3.0]);
+  const a=cu?pick([2.0,2.4,3.2]):pick([1.5,1.8,2.4,3.0]);
+  const r=pick((cu?[0.8,1.2,1.6,2.0]:[0.6,0.9,1.2,1.5]).filter(v=>v<a)),Om=r*or/mr,bm=a+Om;
+  return{lead:`${nm}の粉末をステンレス皿に入れ、質量が変わらなくなるまで加熱した。グラフは、${nm}の質量とできた${ox}の質量の関係である。`,fig,qs:[
+    {q:`${nm}と、${nm}と結びついた酸素の質量の比を、最も簡単な整数の比で答えよ。`,a:`${nm}：酸素＝${mr}：${or}`,ex:`グラフから${nm}0.6gで${ox}${f(0.6*(mr+or)/mr)}g。結びついた酸素は${f(0.6*or/mr)}g。0.6：${f(0.6*or/mr)}＝${mr}：${or}`},
+    {q:`${nm}${f1(X)}gを完全に酸化させると、${ox}は何gできるか。`,a:`${f(X*(mr+or)/mr)} g`,ex:`${nm}：${ox}＝${mr}：${mr+or}。${f1(X)}×${mr+or}/${mr}＝${f(X*(mr+or)/mr)}g`},
+    {q:`${nm}${f1(a)}gを加熱したが、途中でやめたところ、質量は${f(bm)}gになった。まだ酸素と結びついていない${nm}は何gか。`,a:`${f(a-r)} g`,ex:`増えた質量${f(Om)}gが結びついた酸素。結びついた${nm}は${f(Om)}×${mr}/${or}＝${f(r)}g。${f1(a)}−${f(r)}＝${f(a-r)}g`},
+    {q:'この反応を化学反応式で表せ。',a:cu?'2Cu ＋ O₂ → 2CuO':'2Mg ＋ O₂ → 2MgO',ex:'矢印の左右で原子の種類と数が等しくなるように係数をつける。'}]};
+}
+/* 蒸散 */
+function genTrans(){
+  const x=ri(3,12)/10,y=ri(22,50)/10,z=ri(1,5)/10,A=x+y+z,B=y+z,Cc=x+z;
+  const tube=(cx,label,mark)=>{
+    let s=Rc(cx-15,70,30,130,'water')+Rc(cx-15,62,30,8,'f2')+P(`M${cx-16},34 L${cx-16},196 Q${cx-16},212 ${cx},212 Q${cx+16},212 ${cx+16},196 L${cx+16},34`,'s');
+    s+=L(cx,16,cx,184,'s');
+    [[22,-1],[40,1],[56,-1]].forEach(([yy,dir])=>{const lx=cx+dir*30;s+=P(`M${cx},${yy+12} Q${n(cx+dir*12)},${yy-6} ${lx},${yy} Q${n(cx+dir*18)},${yy+16} ${cx},${yy+12}`,mark?'f3':'f2')});
+    s+=T(cx,232,label,{c:'tb'});return s;
+  };
+  const b=tube(60,'A',false)+tube(170,'B',true)+tube(280,'C',true)+T(170,252,'B：葉の表にワセリン　C：葉の裏にワセリン',{c:'tm'})+T(318,66,'油',{a:'start',c:'tm'});
+  const fig=svg(340,262,b,'蒸散を調べる実験');
+  const extra=`<div class="tblwrap"><table class="mini"><tr><th></th><th>A 何もしない</th><th>B 表にワセリン</th><th>C 裏にワセリン</th></tr><tr><th>水の減少量〔g〕</th><td>${f1(A)}</td><td>${f1(B)}</td><td>${f1(Cc)}</td></tr></table></div>`;
+  return{lead:'葉の大きさと数がそろった枝を3本用意し、図のように水を入れた試験管にさした。数時間後、水の減少量を調べると表のようになった。ワセリンは気孔をふさぐはたらきがある。',fig,extra,qs:[
+    {q:'水面に油を入れたのはなぜか。',a:'水面からの水の蒸発を防ぐため。',ex:'減った水がすべて植物からの蒸散によるものになるようにする。'},
+    {q:'葉の裏からの蒸散量は何gか。',a:`${f1(y)} g`,ex:`A（表＋裏＋茎）−C（表＋茎）＝${f1(A)}−${f1(Cc)}＝${f1(y)}g`},
+    {q:'葉の表からの蒸散量は何gか。',a:`${f1(x)} g`,ex:`A−B（裏＋茎）＝${f1(A)}−${f1(B)}＝${f1(x)}g`},
+    {q:'気孔が多いのは、葉の表と裏のどちらか。',a:'裏',ex:`裏からの蒸散量（${f1(y)}g）のほうが表（${f1(x)}g）より多いため。`}]};
+}
+/* 顕微鏡 */
+function genMicro(){
+  const [e,o1,o2,cnt]=pick([[10,10,40,[12,16,20,24]],[15,10,40,[16,20,24]],[10,4,10,[20,30,40]],[15,4,10,[20,30,40]]]),c=pick(cnt);
+  const M1=e*o1,M2=e*o2,c2=c*M1/M2,dir=pick([['右上',1,-1],['左上',-1,-1],['右下',1,1],['左下',-1,1]]);
+  const cx=120,cy=118,r=96,w=2*r/c;
+  const cid='vf'+(++clipN);let b=`<defs><clipPath id="${cid}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath></defs>`;
+  b+=C(cx,cy,r,'sf');
+  let cells='';for(let i=0;i<c;i++)cells+=Rc(cx-r+i*w+0.6,cy-w*0.7,w-1.2,w*1.4,'f1',`rx="${n(w/3)}"`);
+  b+=`<g clip-path="url(#${cid})">${cells}</g>`+C(cx,cy,r,'s');
+  b+=`<ellipse cx="${cx+dir[1]*52}" cy="${cy+dir[2]*52}" rx="11" ry="6" class="fa" transform="rotate(${dir[1]*dir[2]*-30} ${cx+dir[1]*52} ${cy+dir[2]*52})"/>`;
+  b+=T(cx+dir[1]*52,cy+dir[2]*52+(dir[2]<0?-12:20),'P',{c:'tb'});
+  b+=T(232,60,`接眼レンズ ×${e}`,{a:'start'})+T(232,82,`対物レンズ ×${o1}`,{a:'start'})+T(232,120,'視野のようす',{a:'start',c:'tm'});
+  const fig=svg(350,232,b,'顕微鏡の視野');
+  return{lead:`顕微鏡で細胞を観察した。図は、接眼レンズ×${e}、対物レンズ×${o1}で見た視野で、直径上に細胞が${c}個並んで見えた。`,fig,qs:[
+    {q:'このときの顕微鏡の倍率は何倍か。',a:`${M1} 倍`,ex:`倍率＝接眼レンズの倍率×対物レンズの倍率＝${e}×${o1}＝${M1}倍`},
+    {q:`対物レンズを×${o2}にかえると、視野の直径上には細胞が何個並んで見えるか。`,a:`${f(c2)} 個`,ex:`倍率は${M2}倍で${M2/M1}倍になる。見える範囲の直径は1/${M2/M1}になるので ${c}÷${M2/M1}＝${f(c2)}個`},
+    {q:'対物レンズを高倍率にかえると、視野の明るさはどうなるか。',a:'暗くなる',ex:'見える範囲がせまくなり、入る光の量が減るため暗くなる。しぼりや反射鏡で調節する。'},
+    {q:`視野の${dir[0]}にあるPを中央に動かすには、プレパラートをどの向きに動かせばよいか。`,a:`${dir[0]}`,ex:'顕微鏡の像は上下左右が逆に見えるので、動かしたい向きと反対（像がある向き）にプレパラートを動かす。'}]};
+}
+/* 遺伝 */
+const TRAITS=[['種子の形','丸','しわ'],['子葉の色','黄色','緑色'],['草たけ','高い','低い']];
+function genGene(){
+  const [tr,dom,rec]=pick(TRAITS),vA=rnd()<0.6,N=pick([400,800,1200,1600,2400]);
+  const square=(top,left,fill)=>{
+    const x0=80,y0=50,cw=56;let s='';
+    s+=Rc(x0+cw,y0,cw*2,cw*2+cw,'th')+L(x0,y0+cw,x0+cw*3,y0+cw,'th')+L(x0+cw,y0+cw*2,x0+cw*3,y0+cw*2,'th')+L(x0+cw*2,y0,x0+cw*2,y0+cw*3,'th')+L(x0,y0+cw,x0,y0+cw*3,'th')+L(x0,y0+cw*3,x0+cw,y0+cw*3,'th')+L(x0,y0+cw*2,x0+cw,y0+cw*2,'th');
+    top.forEach((g,i)=>s+=T(x0+cw*1.5+i*cw,y0+cw/2+5,g,{c:'tb'}));
+    left.forEach((g,i)=>s+=T(x0+cw/2,y0+cw*1.5+i*cw+5,g,{c:'tb'}));
+    for(let i=0;i<2;i++)for(let j=0;j<2;j++){const g=fill?[left[i],top[j]].sort().join(''):'？';s+=T(x0+cw*1.5+j*cw,y0+cw*1.5+i*cw+5,g,{c:fill&&g==='aa'?'tp':'tb',size:15})}
+    s+=T(x0+cw*2,y0-10,'生殖細胞（精細胞）',{c:'tm'})+T(x0-6,y0+cw*2+4,'生殖細胞（卵細胞）',{c:'tm',a:'end'});
+    return s;
+  };
+  const W=330,H=230;
+  if(vA){
+    const head=T(165,22,`親AA × 親aa → 子 → 子どうしをかけ合わせて孫`,{c:'tm'});
+    const fig=svg(W,H,`<g transform="translate(40,0)">${square(['？','？'],['？','？'],false)}</g>`+head,'かけ合わせの表');
+    const ansFig=svg(W,H,`<g transform="translate(40,0)">${square(['A','a'],['A','a'],true)}</g>`+head,'かけ合わせの表（解答）');
+    return{lead:`エンドウの${tr}には「${dom}」と「${rec}」がある。${dom}の純系（AA）と${rec}の純系（aa）をかけ合わせると、子はすべて${dom}になった。この子どうしをかけ合わせて孫をつくった。`,fig,ansFig,qs:[
+      {q:'子の遺伝子の組み合わせを答えよ。',a:'Aa',ex:'親AAからはA、親aaからはaを受けつぐ。'},
+      {q:`「${dom}」のように、子に現れる形質を何というか。`,a:'顕性形質（優性形質）',ex:`子に現れない「${rec}」は潜性形質（劣性形質）という。`},
+      {q:`孫の${dom}と${rec}の数の比を答えよ。`,a:`${dom}：${rec}＝3：1`,ex:'AA：Aa：aa＝1：2：1。AAとAaは顕性の形質になる。'},
+      {q:`孫が${N}個できたとすると、${rec}はおよそ何個か。`,a:`およそ ${N/4} 個`,ex:`${N}×1/4＝${N/4}個`},
+      {q:`孫の${dom}のうち、遺伝子の組み合わせがAAのものは何%か。小数第1位を四捨五入せよ。`,a:'33 %',ex:`${dom}はAA：Aa＝1：2なので、AAは1/3≒33%`}]};
+  }
+  const head=T(165,22,`${dom}（Aa）× ${rec}（aa）`,{c:'tm'});
+  const fig=svg(W,H,`<g transform="translate(40,0)">${square(['a','a'],['A','a'],false)}</g>`+head,'かけ合わせの表');
+  const ansFig=svg(W,H,`<g transform="translate(40,0)">${square(['a','a'],['A','a'],true)}</g>`+head,'かけ合わせの表（解答）');
+  return{lead:`エンドウの${tr}は、遺伝子Aをもつと「${dom}」、aaのとき「${rec}」になる。遺伝子の組み合わせがAaの${dom}と、${rec}をかけ合わせた。`,fig,ansFig,qs:[
+    {q:`表の「？」にあてはまる遺伝子の組み合わせをすべて書け。`,a:'Aa, Aa, aa, aa',ex:'Aaの親からはAまたはa、aaの親からはaだけを受けつぐ。'},
+    {q:`できる子の${dom}と${rec}の数の比を答えよ。`,a:`${dom}：${rec}＝1：1`,ex:'Aa：aa＝2：2＝1：1'},
+    {q:`子が${N}個できたとすると、${dom}はおよそ何個か。`,a:`およそ ${N/2} 個`,ex:`${N}×1/2＝${N/2}個`},
+    {q:'生殖細胞ができるとき、対になっている遺伝子が別々の細胞に入ることを何というか。',a:'分離の法則',ex:'減数分裂のときに対になった遺伝子が分かれる。'}]};
+}
+/* 地震 */
+function genQuake(){
+  const [vp,vs]=pick([[6,3],[8,4],[6,4],[7,3.5]]),k=1/(1/vs-1/vp),D=vs*60,ys=D/6;
+  const g=graph({x:52,y:24,w:270,h:190,xmax:60,ymax:D,xs:10,ys,xm:5,ym:ys/2,xl:'地震が発生してからの時間〔s〕',yl:'震源からの距離〔km〕'});
+  let b=g.s+L(g.X(0),g.Y(0),g.X(D/vp),g.Y(D),'c-n')+L(g.X(0),g.Y(0),g.X(60),g.Y(D),'c-k');
+  b+=T(g.X(D/vp)-4,g.Y(D)+16,'P波',{a:'end',c:'tb'})+T(g.X(60)-4,g.Y(D)+30,'S波',{a:'end',c:'tb'});
+  const fig=svg(340,256,b,'P波とS波の到着時刻のグラフ');
+  const ds=[4,5,6,8,10,12,15].map(m=>m*k).filter(d=>d<=D&&d%1===0),d=pick(ds.length?ds:[k*5]);
+  const ts=[5,6,8,10,12,15,20].filter(t=>t*k<=D*1.5),t=pick(ts);
+  const d2=vp*pick([5,10,15,20]),o=ri(0,25),arr=o+d2/vp;
+  return{lead:'グラフは、ある地震のP波とS波が届くまでの時間と、震源からの距離の関係を表したものである。',fig,qs:[
+    {q:'P波の速さは何km/sか。',a:`${vp} km/s`,ex:`グラフからP波は10秒で${vp*10}km進む。${vp*10}÷10＝${vp}km/s`},
+    {q:'S波の速さは何km/sか。',a:`${vs} km/s`,ex:`S波は60秒で${D}km進む。${D}÷60＝${vs}km/s`},
+    {q:`震源から${d}kmの地点の初期微動継続時間は何秒か。`,a:`${f(d/k,1)} 秒`,ex:`P波は${d}÷${vp}＝${f(d/vp,2)}秒、S波は${d}÷${vs}＝${f(d/vs,2)}秒で届く。差は${f(d/k,1)}秒`},
+    {q:`初期微動継続時間が${t}秒の地点は、震源から何kmか。`,a:`${f(t*k,1)} km`,ex:`初期微動継続時間は震源からの距離に比例する。この地震では1秒あたり${f(k,2)}kmなので ${t}×${f(k,2)}＝${f(t*k,1)}km`},
+    {q:`震源から${d2}kmの地点で、P波が10時15分${arr}秒に届いた。地震の発生時刻を答えよ。`,a:`10時15分${o}秒`,ex:`P波が${d2}kmを進むのに${d2}÷${vp}＝${d2/vp}秒かかる。${arr}−${d2/vp}＝${o}秒`}]};
+}
+/* 湿度 */
+const SAT={0:4.8,2:5.6,4:6.4,6:7.3,8:8.3,10:9.4,12:10.7,14:12.1,16:13.6,18:15.4,20:17.3,22:19.4,24:21.8,26:24.4,28:27.2,30:30.4};
+function genHumid(){
+  const Tt=pick([16,18,20,22,24,26,28,30]),Td=pick(Object.keys(SAT).map(Number).filter(t=>t<=Tt-4&&t>=6)),T3=pick(Object.keys(SAT).map(Number).filter(t=>t<=Td-4));
+  const g=graph({x:44,y:24,w:270,h:190,xmax:30,ymax:32,xs:5,ys:4,xm:1,ym:2,xl:'気温〔℃〕',yl:'飽和水蒸気量〔g/m³〕'});
+  let b=g.s+P(smooth(Object.entries(SAT).map(([t,v])=>[g.X(+t),g.Y(v)])),'c-n');
+  b+=L(g.X(Td),g.Y(SAT[Td]),g.X(Tt),g.Y(SAT[Td]),'th dash')+C(g.X(Tt),g.Y(SAT[Td]),4.5,'fp')+T(g.X(Tt)+4,g.Y(SAT[Td])+16,'X',{a:'start',c:'tp'});
+  const fig=svg(330,256,b,'気温と飽和水蒸気量のグラフ');
+  const H=SAT[Td]/SAT[Tt]*100;
+  const extra=`<div class="tblwrap"><table class="mini"><tr><th>気温〔℃〕</th>${[T3,Td,Tt].map(t=>`<td>${t}</td>`).join('')}</tr><tr><th>飽和水蒸気量〔g/m³〕</th>${[T3,Td,Tt].map(t=>`<td>${SAT[t]}</td>`).join('')}</tr></table></div>`;
+  return{lead:`気温${Tt}℃の部屋で、金属製のコップに水を入れ、氷水で少しずつ冷やすと、水温が${Td}℃のときコップの表面がくもり始めた。グラフの点Xはこの部屋の空気を表す。`,fig,extra,qs:[
+    {q:'コップの表面がくもり始めたときの温度を何というか。',a:'露点',ex:'空気中の水蒸気が冷やされて水滴に変わり始める温度。'},
+    {q:'この部屋の空気1m³中にふくまれる水蒸気量は何gか。',a:`${SAT[Td]} g`,ex:`露点${Td}℃の飽和水蒸気量と等しい。`},
+    {q:'この部屋の湿度は何%か。小数第1位を四捨五入せよ。',a:`${Math.round(H)} %`,ex:`湿度＝空気1m³中の水蒸気量÷その気温の飽和水蒸気量×100＝${SAT[Td]}÷${SAT[Tt]}×100＝${f(H,1)}… → ${Math.round(H)}%`},
+    {q:`この空気の温度が${T3}℃まで下がると、空気1m³あたり何gの水滴ができるか。`,a:`${f(SAT[Td]-SAT[T3],1)} g`,ex:`${T3}℃では${SAT[T3]}gまでしかふくめない。${SAT[Td]}−${SAT[T3]}＝${f(SAT[Td]-SAT[T3],1)}g`}]};
+}
+/* 星の動き */
+function genStars(){
+  const h=pick([2,3,4]),th=15*h,t1=pick([19,20,21]),al=pick([150,170,190,210,240,270,300,330]);
+  const cx=170,cy=118,r=88,pt=a=>[cx+r*Math.cos(a*Math.PI/180),cy-r*Math.sin(a*Math.PI/180)];
+  const A=pt(al),B=pt(al+th);
+  let b=C(cx,cy,r,'th dash')+L(cx,cy,A[0],A[1],'th')+L(cx,cy,B[0],B[1],'th');
+  const ar=34,a1=[cx+ar*Math.cos(al*Math.PI/180),cy-ar*Math.sin(al*Math.PI/180)],a2=[cx+ar*Math.cos((al+th)*Math.PI/180),cy-ar*Math.sin((al+th)*Math.PI/180)];
+  b+=P(`M${n(a1[0])},${n(a1[1])} A${ar},${ar} 0 0 0 ${n(a2[0])},${n(a2[1])}`,'th');
+  const mid=(al+th/2)*Math.PI/180;b+=T(cx+52*Math.cos(mid),cy-52*Math.sin(mid)+4,`${th}°`,{c:'tb'});
+  b+=C(cx,cy,4,'fi')+T(cx+8,cy+16,'北極星',{a:'start',c:'tm'});
+  b+=C(A[0],A[1],5,'fa')+C(B[0],B[1],5,'fa');
+  const lab=(p,s)=>{const dx=p[0]-cx,dy=p[1]-cy,l=Math.hypot(dx,dy);return T(p[0]+dx/l*16,p[1]+dy/l*16+5,s,{c:'tb'})};
+  b+=lab(A,'A')+lab(B,'B');
+  b+=L(10,236,330,236,'s')+T(170,254,'北',{c:'tb'})+T(20,254,'西',{c:'tm'})+T(320,254,'東',{c:'tm'});
+  const fig=svg(340,264,b,'北の空の星の動き');
+  return{lead:`ある日の${t1}時に、北の空で星がAの位置に見えた。その後、同じ星はBの位置に移動した。`,fig,qs:[
+    {q:'北の空の星は、北極星を中心にどちら向きに回って見えるか。',a:'反時計回り',ex:'東から西へ、北極星を中心に反時計回りに動いて見える。'},
+    {q:'星がBの位置に見えたのは何時か。',a:`${t1+h}時`,ex:`星は1時間に約15°動く。${th}÷15＝${h}時間後なので ${t1}＋${h}＝${t1+h}時`},
+    {q:'星が1時間に約15°動いて見えるのは、地球の何という運動によるか。',a:'自転',ex:'地球は24時間で1回（360°）自転する。360÷24＝15°'},
+    {q:'1か月後、この星が同じAの位置に見えるのはおよそ何時か。',a:`${t1-2}時ごろ`,ex:`公転により、同じ時刻の星の位置は1か月で約30°ずれる。30°は2時間分なので、2時間早い${t1-2}時ごろ。`}]};
+}
+
+/* ---------- 単元一覧 ---------- */
+const FIELDS={phys:'物理',chem:'化学',bio:'生物',earth:'地学'};
+const UNITS=[
+  {id:'lens',name:'凸レンズの像',field:'phys',grade:1,gen:genLens},
+  {id:'spring',name:'ばねののび',field:'phys',grade:1,gen:genSpring},
+  {id:'pressure',name:'圧力',field:'phys',grade:1,gen:genPressure},
+  {id:'series',name:'直列回路とオームの法則',field:'phys',grade:2,gen:genSeries},
+  {id:'parallel',name:'並列回路',field:'phys',grade:2,gen:genParallel},
+  {id:'power',name:'電力と発熱量',field:'phys',grade:2,gen:genPower},
+  {id:'tape',name:'記録タイマーと速さ',field:'phys',grade:3,gen:genTape},
+  {id:'buoy',name:'水圧と浮力',field:'phys',grade:3,gen:genBuoy},
+  {id:'density',name:'密度',field:'chem',grade:1,gen:genDensity},
+  {id:'conc',name:'質量パーセント濃度',field:'chem',grade:1,gen:genConc},
+  {id:'solub',name:'溶解度と再結晶',field:'chem',grade:1,gen:genSolub},
+  {id:'oxid',name:'金属の酸化と質量',field:'chem',grade:2,gen:genOxid},
+  {id:'micro',name:'顕微鏡の使い方',field:'bio',grade:1,gen:genMicro},
+  {id:'trans',name:'蒸散の実験',field:'bio',grade:1,gen:genTrans},
+  {id:'gene',name:'遺伝の規則性',field:'bio',grade:3,gen:genGene},
+  {id:'quake',name:'地震の伝わり方',field:'earth',grade:1,gen:genQuake},
+  {id:'humid',name:'湿度と露点',field:'earth',grade:2,gen:genHumid},
+  {id:'stars',name:'星の日周運動・年周運動',field:'earth',grade:3,gen:genStars},
+];
+
+/* ---------- 画面 ---------- */
+const $=s=>document.querySelector(s);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const state={seed:0,count:+store.get('count',6),selected:new Set(store.get('units',UNITS.map(u=>u.id))),cards:[]};
+
+function renderUnitList(){
+  $('#unit-list').innerHTML=Object.entries(FIELDS).map(([k,nm])=>`<fieldset style="--fc:var(--${k})"><legend>${nm}</legend>${
+    UNITS.filter(u=>u.field===k).map(u=>`<label class="unit-opt"><input type="checkbox" id="u-${u.id}" value="${u.id}" ${state.selected.has(u.id)?'checked':''}> ${u.name}<span class="gr">中${u.grade}</span></label>`).join('')}</fieldset>`).join('');
+}
+function syncSel(){state.selected=new Set([...document.querySelectorAll('#unit-list input:checked')].map(i=>i.value));store.set('units',[...state.selected])}
+
+function cardHTML(c,i){
+  rnd=mulberry32(c.s);
+  let p;try{p=c.u.gen()}catch(err){console.error(err);p={lead:'この問題の作成に失敗しました。「数値を変える」を押してください。',fig:'',qs:[]}}
+  rnd=Math.random;
+  const ansOpen=$('#showans').checked?' open':'';
+  return `<article class="card" style="--fc:var(--${c.u.field})">
+    <div class="card-h"><span class="no">${i+1}</span><span class="chip">${FIELDS[c.u.field]}</span><span class="unit-name">${c.u.name}</span><span class="grade">中${c.u.grade}</span>
+      <button type="button" class="btn-sub regen" data-i="${i}">数値を変える</button></div>
+    <p class="lead">${p.lead}</p>
+    ${p.fig?`<div class="figwrap">${p.fig}</div>`:''}
+    ${p.extra||''}
+    <ol class="qs">${p.qs.map(q=>`<li>${q.q}</li>`).join('')}</ol>
+    <details class="ans"${ansOpen}><summary>解答・解説</summary><div class="ans-body">
+      ${p.ansFig?`<div class="figwrap">${p.ansFig}</div>`:''}
+      <ol class="as">${p.qs.map(q=>`<li><span class="a">${q.a}</span><span class="ex">${q.ex}</span></li>`).join('')}</ol>
+    </div></details>
+  </article>`;
+}
+function renderCards(){
+  $('#m-seed').textContent=state.seed;$('#m-count').textContent=state.cards.length;
+  if(!state.cards.length){$('#cards').innerHTML='<div class="empty">出題する単元を1つ以上選んでください。</div>';return}
+  const fs=[...new Set(state.cards.map(c=>FIELDS[c.u.field]))];
+  $('#sheet-title').textContent=`理科 演習プリント（${fs.join('・')}）`;
+  $('#cards').innerHTML=state.cards.map(cardHTML).join('');
+}
+function build(seed){
+  state.seed=seed;$('#seed').value=seed;
+  const units=UNITS.filter(u=>state.selected.has(u.id));
+  rnd=mulberry32(seed);
+  let order=[];while(units.length&&order.length<state.count)order=order.concat(shuffle(units));
+  state.cards=order.slice(0,state.count).map(u=>({u,s:Math.floor(rnd()*2147483647)}));
+  rnd=Math.random;
+  renderCards();
+}
+const newSeed=()=>1+Math.floor(Math.random()*999999);
+
+renderUnitList();
+$('#count').value=String(state.count);
+$('#unit-list').addEventListener('change',syncSel);
+document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click',()=>{
+  const g=b.dataset.grade,s=b.dataset.sel;
+  document.querySelectorAll('#unit-list input').forEach(i=>{const u=UNITS.find(x=>x.id===i.value);i.checked=s==='all'?true:s==='none'?false:u.grade===+g});
+  syncSel();
+}));
+$('#count').addEventListener('change',e=>{state.count=+e.target.value;store.set('count',state.count)});
+$('#gen').addEventListener('click',()=>build(newSeed()));
+$('#apply').addEventListener('click',()=>{const v=parseInt($('#seed').value,10);if(v>0)build(v)});
+$('#seed').addEventListener('keydown',e=>{if(e.key==='Enter')$('#apply').click()});
+$('#showans').addEventListener('change',e=>{document.querySelectorAll('.ans').forEach(d=>d.open=e.target.checked);document.body.classList.toggle('print-ans',e.target.checked)});
+$('#cards').addEventListener('click',e=>{const b=e.target.closest('.regen');if(!b)return;const i=+b.dataset.i;state.cards[i].s=Math.floor(Math.random()*2147483647);
+  const tmp=document.createElement('div');tmp.innerHTML=cardHTML(state.cards[i],i);b.closest('.card').replaceWith(tmp.firstElementChild)});
+let inFrame=true;try{inFrame=window.self!==window.top}catch(e){}
+if(!inFrame){$('#print').hidden=false;$('#print').addEventListener('click',()=>window.print())}
+build(newSeed());
+</script>
+</body>
+</html>
